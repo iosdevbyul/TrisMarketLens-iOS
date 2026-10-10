@@ -88,7 +88,7 @@ struct ScreenerView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 entries = []
-                errorMessage = "Research data could not be loaded. No mock fallback is available."
+                errorMessage = ResearchErrorGuidance.message(for: error)
             }
             isLoading = false
     }
