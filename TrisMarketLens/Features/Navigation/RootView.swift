@@ -35,6 +35,14 @@ struct RootView: View {
                 NavigationStack {
                     ResearchCatalogView(kind: .evidence)
                 }
+             } else if selection == .backtesting {
+                NavigationStack {
+                    BacktestingOperationsView(page: .backtesting)
+                }
+            } else if selection == .operations {
+                NavigationStack {
+                    BacktestingOperationsView(page: .operations)
+                }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
             }
