@@ -1,6 +1,5 @@
 import SwiftUI
 import WakTrainerDesignSystem
-import WakTrainerDesignSystem
 
 struct StockDetailView: View {
     let ticker: String
@@ -17,6 +16,7 @@ struct StockDetailView: View {
                 ProgressView("Loading stock detail")
             } else if failed {
                 ContentUnavailableView("Stock unavailable", systemImage: "exclamationmark.triangle")
+                Button("Retry") { Task { await reload() } }
             } else if let detail {
                 Section("Stock research") {
                     LabeledContent("Ticker", value: detail.ticker)
@@ -44,16 +44,23 @@ struct StockDetailView: View {
         .scrollContentBackground(.hidden)
         .background(WakColor.background)
         .navigationTitle(detail?.displayName ?? ticker)
-        .task(id: ticker) {
-            loading = true
-            do {
-                detail = try await source.getStock(ticker: ticker)
-                failed = false
-            } catch {
-                detail = nil
-                failed = true
-            }
-            loading = false
+        .refreshable { await reload() }
+        .task(id: ticker) { await reload() }
+    }
+
+    private func reload() async {
+        guard !Task.isCancelled else { return }
+        loading = true
+        do {
+            let response = try await source.getStock(ticker: ticker)
+            guard !Task.isCancelled else { return }
+            detail = response
+            failed = false
+        } catch {
+            guard !Task.isCancelled else { return }
+            detail = nil
+            failed = true
         }
+        loading = false
     }
 }
