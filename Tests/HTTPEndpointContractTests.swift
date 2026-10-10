@@ -55,11 +55,14 @@ final class HTTPEndpointContractTests: XCTestCase {
             let source = HTTPStockResearchSource(client: try client(payload: json))
             switch endpoint {
             case "ohlcv":
-                XCTAssertTrue(try await source.getOhlcv(ticker: "005930").bars.isEmpty)
+                let result = try await source.getOhlcv(ticker: "005930")
+                XCTAssertTrue(result.bars.isEmpty)
             case "analysis":
-                XCTAssertTrue(try await source.getAnalysis(ticker: "005930").records.isEmpty)
+                let result = try await source.getAnalysis(ticker: "005930")
+                XCTAssertTrue(result.records.isEmpty)
             default:
-                XCTAssertTrue(try await source.getEvaluations(ticker: "005930").evaluations.isEmpty)
+                let result = try await source.getEvaluations(ticker: "005930")
+                XCTAssertTrue(result.evaluations.isEmpty)
             }
             XCTAssertEqual(ContractURLProtocol.lastRequest?.url?.path, "/api/v1/stocks/005930/\(endpoint)")
         }
