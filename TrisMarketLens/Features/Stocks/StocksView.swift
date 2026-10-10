@@ -71,7 +71,7 @@ struct StocksView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 stocks = []
-                errorMessage = "The selected stock data source could not be loaded."
+                errorMessage = ResearchErrorGuidance.message(for: error)
             }
             loading = false
     }
