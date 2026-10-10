@@ -71,3 +71,12 @@ The app remains iOS 17+, and uses WakTrainerDesignSystem.
 Research HTTP calls now flow through the reusable [TrisNetworkKit](https://github.com/iosdevbyul/TrisNetworkKit) Swift package. `ResearchAPIClient` keeps its typed `fetch(_:path:)` contract for existing research data-source adapters while translating NetworkKit errors into the established `ResearchAPIError` cases.
 
 The package revision is pinned until the compatibility change is CI-tested and merged in TrisNetworkKit. Merge the NetworkKit compatibility PR before the app integration PR; prefer a tested release tag later. `TRIS_DATA_MODE` and `TRIS_API_BASE_URL` remain unchanged. API mode never falls back to mock research outputs.
+
+
+## Backend endpoint diagnostic (A-3)
+
+In HTTP mode, the Operations screen first checks `GET /api/v1/health`, then probes the supported read-only endpoints using existing typed data-source adapters. A healthy service is **not** interpreted as proof that data publication is configured. A 503 is reported as a missing backend reader/publication; malformed payloads remain incompatible, not verified.
+
+The backend FastAPI router currently does not expose `/api/v1/operations` or `/api/v1/stocks/{ticker}/evaluations`. These are displayed as unsupported in the diagnostic rather than fabricated successes. Stock-specific analysis and OHLCV should be checked with an actual ticker as a later step. Endpoint reports reflect only the results at the time of the check.
+
+The app does not boot or mutate the backend. To run a real connectivity check, configure `TRIS_DATA_MODE=http` and `TRIS_API_BASE_URL` in the Xcode scheme and ensure the target device can reach the server through a secure development connection.
