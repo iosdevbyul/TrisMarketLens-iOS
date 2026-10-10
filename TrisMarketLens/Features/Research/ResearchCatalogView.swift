@@ -40,6 +40,7 @@ struct ResearchCatalogView: View {
                     ProgressView("Loading research")
                 } else if failure {
                     ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle")
+                    Button("Retry") { Task { await reload() } }
                 } else if kind == .models {
                     if models.isEmpty {
                         ContentUnavailableView("No qualified models loaded", systemImage: "brain", description: Text("The research API is not connected."))
@@ -88,21 +89,32 @@ struct ResearchCatalogView: View {
         }
         .background(WakColor.background)
         .navigationTitle(kind.title)
-        .task {
-            loading = true
-            failure = false
-            do {
-                switch kind {
-                case .models: models = try await source.getModels()
-                case .evidence: layers = try await source.getEvidenceLayers()
-                }
-            } catch {
-                models = []
-                layers = []
-                failure = true
+        .refreshable { await reload() }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        guard !Task.isCancelled else { return }
+        loading = true
+        failure = false
+        do {
+            switch kind {
+            case .models:
+                let response = try await source.getModels()
+                guard !Task.isCancelled else { return }
+                models = response
+            case .evidence:
+                let response = try await source.getEvidenceLayers()
+                guard !Task.isCancelled else { return }
+                layers = response
             }
-            loading = false
+        } catch {
+            guard !Task.isCancelled else { return }
+            models = []
+            layers = []
+            failure = true
         }
+        loading = false
     }
 }
 
