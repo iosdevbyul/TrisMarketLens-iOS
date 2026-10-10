@@ -3,12 +3,14 @@ import WakTrainerDesignSystem
 
 struct StocksView: View {
     private let source: any StockSource
+    private let isDemo: Bool
     @State private var stocks: [StockSummary] = []
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
 
-    init(source: any StockSource = MockStockSource()) {
+    init(source: any StockSource = MockStockSource(), isDemo: Bool = true) {
+        self.isDemo = isDemo
         self.source = source
     }
 
@@ -19,7 +21,7 @@ struct StocksView: View {
     var body: some View {
         List {
             Section {
-                Label("Synthetic demo data — not live market coverage", systemImage: "info.circle")
+                Label(isDemo ? "Synthetic demo data — not live market coverage" : "Configured research source", systemImage: "info.circle")
                     .foregroundStyle(.secondary)
                     .font(.footnote)
             }

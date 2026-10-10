@@ -3,10 +3,12 @@ import WakTrainerDesignSystem
 
 struct OverviewView: View {
     private let source: any ProjectStatusSource
+    private let isDemo: Bool
     @State private var status: ProjectStatus?
     @State private var errorMessage: String?
 
-    init(source: any ProjectStatusSource = MockProjectStatusSource()) {
+    init(source: any ProjectStatusSource = MockProjectStatusSource(), isDemo: Bool = true) {
+        self.isDemo = isDemo
         self.source = source
     }
 
@@ -20,7 +22,7 @@ struct OverviewView: View {
                     Text("TrisMarketLens")
                         .foregroundStyle(WakColor.textPrimary)
                         .font(.largeTitle.bold())
-                    Label("Mock data · Not live research", systemImage: "info.circle")
+                    Label(isDemo ? "Mock data · Not live research" : "Configured research source", systemImage: "info.circle")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

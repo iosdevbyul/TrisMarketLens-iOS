@@ -46,3 +46,21 @@ Feature branch → tests → commit → push → PR → CI → merge to main. Do
 3. Overview and Stocks screens matching web behavior.
 4. Models, Evidence, Screener, History, Backtesting, Operations.
 5. Secure HTTP transport and error states against verified snapshots.
+
+
+## Research data source configuration
+
+Set the following environment variables in the Xcode scheme (Run → Arguments → Environment Variables):
+
+| Variable | Values | Default |
+|---|---|---|
+| `TRIS_DATA_MODE` | `mock`, `disconnected`, `http` | `mock` |
+| `TRIS_API_BASE_URL` | Base HTTP(S) URL (required only for `http`) | unset |
+
+- **mock**: local demonstration fixtures on Overview and Stocks; other research views remain disconnected.
+- **disconnected**: no sample research data on Overview or Stocks.
+- **http**: Overview, Stocks, Models, Evidence, Backtesting and Operations use typed HTTP adapters. An invalid/missing URL produces a configuration error instead of silently switching to mock data.
+- AI Screener, Analysis History and per-stock OHLCV/analysis/evaluation remain disconnected until their HTTP sources are wired in a follow-up PR.
+- A configured HTTP URL does not imply the server is reachable or responses are verified. Do not enter real trading credentials in scheme variables.
+
+The app remains iOS 17+, and uses WakTrainerDesignSystem.
