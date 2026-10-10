@@ -30,6 +30,7 @@ struct StocksView: View {
             if loading {
                 ProgressView("Loading stocks")
             } else if let errorMessage {
+                Button("Retry") { Task { await reload() } }
                 ContentUnavailableView("Stocks unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
             } else if filteredStocks.isEmpty {
                 ContentUnavailableView.search(text: query)
@@ -55,15 +56,23 @@ struct StocksView: View {
         .background(WakColor.background)
         .searchable(text: $query, prompt: "Search ticker, name, or sector")
         .navigationTitle("Stocks")
-        .task {
+        .refreshable { await reload() }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+            loading = true
+            if Task.isCancelled { return }
             do {
-                stocks = try await source.getStocks()
+                let result = try await source.getStocks()
+                guard !Task.isCancelled else { return }
+                stocks = result
                 errorMessage = nil
             } catch {
+                guard !Task.isCancelled else { return }
                 stocks = []
                 errorMessage = "The selected stock data source could not be loaded."
             }
             loading = false
-        }
     }
 }

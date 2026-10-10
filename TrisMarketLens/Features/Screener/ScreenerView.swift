@@ -44,6 +44,7 @@ struct ScreenerView: View {
                 if isLoading {
                     ProgressView("Loading screener")
                 } else if let errorMessage {
+                    Button("Retry") { Task { await reload() } }
                     ContentUnavailableView("Screener unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
                 } else if filter.apply(to: entries).isEmpty {
                     ContentUnavailableView("No verified analyses", systemImage: "chart.xyaxis.line", description: Text("The research API is not connected or no records match these filters."))
@@ -72,18 +73,24 @@ struct ScreenerView: View {
         .scrollContentBackground(.hidden)
         .background(WakColor.background)
         .navigationTitle("AI Screener")
-        .task {
+        .refreshable { await reload() }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+            if Task.isCancelled { return }
             isLoading = true
             do {
                 let snapshot = try await source.getScreener()
+                guard !Task.isCancelled else { return }
                 entries = snapshot.entries
                 errorMessage = nil
             } catch {
+                guard !Task.isCancelled else { return }
                 entries = []
                 errorMessage = "Research data could not be loaded. No mock fallback is available."
             }
             isLoading = false
-        }
     }
 }
 

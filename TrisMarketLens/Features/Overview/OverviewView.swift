@@ -51,6 +51,7 @@ struct OverviewView: View {
                     checkpointSection("Research readiness", items: status.evidence)
                     checkpointSection("Historical baseline", items: status.baseline)
                 } else if let errorMessage {
+                    Button("Retry") { Task { await reload() } }
                     ContentUnavailableView(
                         "Research status unavailable",
                         systemImage: "exclamationmark.triangle",
@@ -65,15 +66,22 @@ struct OverviewView: View {
         }
         .background(WakColor.background)
         .navigationTitle("Overview")
-        .task {
+        .refreshable { await reload() }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+            if Task.isCancelled { return }
             do {
-                status = try await source.getProjectStatus()
+                let result = try await source.getProjectStatus()
+                guard !Task.isCancelled else { return }
+                status = result
                 errorMessage = nil
             } catch {
+                guard !Task.isCancelled else { return }
                 status = nil
                 errorMessage = "Could not load the selected data source."
             }
-        }
     }
 
     private func checkpointSection(_ title: String, items: [ResearchCheckpoint]) -> some View {

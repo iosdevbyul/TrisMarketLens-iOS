@@ -32,6 +32,7 @@ struct AnalysisHistoryView: View {
                         if isLoading {
                             ProgressView("Loading analysis history")
                         } else if let errorMessage {
+                            Button("Retry") { Task { await reload() } }
                             Label(errorMessage, systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(WakColor.destructive)
                         } else if history.isEmpty {
@@ -70,18 +71,25 @@ struct AnalysisHistoryView: View {
         }
         .background(WakColor.background)
         .navigationTitle("AI Analysis History")
-        .task {
+        .refreshable { await reload() }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+            if Task.isCancelled { return }
             isLoading = true
             do {
                 let snapshot = try await source.getScreener()
-                history = DailyAnalysisSummary.summarize(snapshot.entries)
+                let result = DailyAnalysisSummary.summarize(snapshot.entries)
+                guard !Task.isCancelled else { return }
+                history = result
                 errorMessage = nil
             } catch {
+                guard !Task.isCancelled else { return }
                 history = []
                 errorMessage = "Analysis history unavailable. No mock fallback is shown."
             }
             isLoading = false
-        }
     }
 }
 
