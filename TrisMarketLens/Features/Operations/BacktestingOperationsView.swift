@@ -18,6 +18,7 @@ struct BacktestingOperationsView: View {
     private let source: any BacktestingOperationsSource
     private let diagnostic: ResearchConnectionDiagnostic?
     @State private var connection = ResearchConnectionReport.notConfigured
+    @State private var endpointResults: [ResearchEndpointResult] = []
     @State private var baseline: BaselineBacktestSnapshot?
     @State private var operations = OperationsSnapshot.disconnected
     @State private var loading = true
@@ -41,6 +42,7 @@ struct BacktestingOperationsView: View {
 
                 if page == .operations {
                     connectionContent
+                    endpointContent
                 }
 
                 if loading {
@@ -96,8 +98,32 @@ struct BacktestingOperationsView: View {
         }
     }
 
+    @ViewBuilder private var endpointContent: some View {
+        if diagnostic != nil {
+            WakCard {
+                VStack(alignment: .leading, spacing: WakSpacing.small) {
+                    WakSectionHeader("Research endpoint readiness")
+                    ForEach(endpointResults) { result in
+                        VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
+                            Text(result.name).font(.headline)
+                            Text(result.path).font(.caption).foregroundStyle(WakColor.textSecondary)
+                            Text(String(describing: result.state).capitalized)
+                            Text(result.detail).font(.footnote).foregroundStyle(WakColor.textSecondary)
+                        }
+                        Divider()
+                    }
+                }
+            }
+        }
+    }
+
     private func refreshConnection() async {
         connection = await diagnostic?.check() ?? .notConfigured
+        if let diagnostic, connection.state == .reachable {
+            endpointResults = await ResearchEndpointDiagnostic(client: diagnostic.client).check()
+        } else {
+            endpointResults = []
+        }
     }
 
     @ViewBuilder private var backtestingContent: some View {
