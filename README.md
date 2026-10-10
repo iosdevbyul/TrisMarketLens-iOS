@@ -80,3 +80,8 @@ In HTTP mode, the Operations screen first checks `GET /api/v1/health`, then prob
 The backend FastAPI router currently does not expose `/api/v1/operations` or `/api/v1/stocks/{ticker}/evaluations`. These are displayed as unsupported in the diagnostic rather than fabricated successes. Stock-specific analysis and OHLCV should be checked with an actual ticker as a later step. Endpoint reports reflect only the results at the time of the check.
 
 The app does not boot or mutate the backend. To run a real connectivity check, configure `TRIS_DATA_MODE=http` and `TRIS_API_BASE_URL` in the Xcode scheme and ensure the target device can reach the server through a secure development connection.
+
+
+### Live read-only API smoke check
+
+For an actual running DonghakStockVision server, see [A-3 verification instructions](docs/live-api-verification.md) and run `python3 scripts/verify_research_api.py --base-url <reachable-base-url>`. This checks endpoint readiness; CI does not prove a live server is reachable.
