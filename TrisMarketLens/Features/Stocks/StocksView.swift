@@ -4,12 +4,14 @@ import WakTrainerDesignSystem
 struct StocksView: View {
     private let source: any StockSource
     private let isDemo: Bool
+    private let researchSource: any StockResearchSource
     @State private var stocks: [StockSummary] = []
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
 
-    init(source: any StockSource = MockStockSource(), isDemo: Bool = true) {
+    init(source: any StockSource = MockStockSource(), isDemo: Bool = true, researchSource: any StockResearchSource = DisconnectedStockResearchSource()) {
+        self.researchSource = researchSource
         self.isDemo = isDemo
         self.source = source
     }
@@ -35,7 +37,7 @@ struct StocksView: View {
                 Section("Research universe · \(filteredStocks.count) displayed") {
                     ForEach(filteredStocks) { stock in
                         NavigationLink {
-                            StockDetailView(ticker: stock.ticker, source: source)
+                            StockDetailView(ticker: stock.ticker, source: source, researchSource: researchSource)
                         } label: {
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(stock.displayName).font(WakTypography.sectionTitle)

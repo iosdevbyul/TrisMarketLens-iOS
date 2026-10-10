@@ -3,19 +3,21 @@ import WakTrainerDesignSystem
 
 struct ScreenerView: View {
     private let source: any ScreenerSource
+    private let isConnected: Bool
     @State private var entries: [ScreenerEntry] = []
     @State private var filter = ScreenerFilter()
     @State private var isLoading = true
     @State private var errorMessage: String?
 
-    init(source: any ScreenerSource = DisconnectedScreenerSource()) {
+    init(source: any ScreenerSource = DisconnectedScreenerSource(), isConnected: Bool = false) {
+        self.isConnected = isConnected
         self.source = source
     }
 
     var body: some View {
         List {
             Section {
-                Label("Not connected · No investment recommendations", systemImage: "info.circle")
+                Label(isConnected ? "Research API configured · Not investment advice" : "Not connected · No investment recommendations", systemImage: "info.circle")
                     .font(.footnote)
                     .foregroundStyle(WakColor.textSecondary)
             }

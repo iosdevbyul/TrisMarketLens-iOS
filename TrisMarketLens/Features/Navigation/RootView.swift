@@ -29,15 +29,15 @@ struct RootView: View {
                 OverviewView(source: environment.project(), isDemo: environment.mode == .mock)
             } else if selection == .stocks {
                 NavigationStack {
-                    StocksView(source: environment.stocks(), isDemo: environment.mode == .mock)
+                    StocksView(source: environment.stocks(), isDemo: environment.mode == .mock, researchSource: environment.stockResearch())
                 }
             } else if selection == .screener {
                 NavigationStack {
-                    ScreenerView()
+                    ScreenerView(source: environment.screener(), isConnected: environment.mode == .http)
                 }
             } else if selection == .history {
                 NavigationStack {
-                    AnalysisHistoryView()
+                    AnalysisHistoryView(source: environment.screener(), isConnected: environment.mode == .http)
                 }
              } else if selection == .models {
                 NavigationStack {
