@@ -5,6 +5,7 @@ import WakTrainerDesignSystem
 struct StockDetailView: View {
     let ticker: String
     let source: any StockSource
+    var researchSource: any StockResearchSource = DisconnectedStockResearchSource()
 
     @State private var detail: StockDetail?
     @State private var loading = true
@@ -33,7 +34,7 @@ struct StockDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Research evidence") {
-                    StockResearchSections(ticker: ticker, source: DisconnectedStockResearchSource())
+                    StockResearchSections(ticker: ticker, source: researchSource)
                         .listRowBackground(WakColor.background)
                 }
             } else {
