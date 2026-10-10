@@ -16,21 +16,56 @@ struct DailyAnalysisSummary: Identifiable, Equatable {
     var id: String { date }
 
     static func summarize(_ entries: [ScreenerEntry]) -> [DailyAnalysisSummary] {
-        Dictionary(grouping: entries, by: \.dataThrough)
-            .map { date, records in
-                DailyAnalysisSummary(
-                    date: date,
-                    records: records.count,
-                    securities: Set(records.map(\.ticker)).count,
-                    up: records.filter { $0.direction == "up" }.count,
-                    down: records.filter { $0.direction == "down" }.count,
-                    neutral: records.filter { $0.direction == "neutral" }.count,
-                    verified: records.filter { $0.validation == "verified" }.count,
-                    pending: records.filter { $0.validation == "pending" }.count,
-                    blocked: records.filter { $0.validation == "blocked" }.count,
-                    latestAnalyzedAt: records.map(\.analyzedAt).max() ?? ""
-                )
+        let grouped = Dictionary(grouping: entries, by: { $0.dataThrough })
+        var summaries: [DailyAnalysisSummary] = []
+        summaries.reserveCapacity(grouped.count)
+
+        for (date, records) in grouped {
+            var tickers = Set<String>()
+            var up = 0
+            var down = 0
+            var neutral = 0
+            var verified = 0
+            var pending = 0
+            var blocked = 0
+            var latestAnalyzedAt = ""
+
+            for record in records {
+                tickers.insert(record.ticker)
+                switch record.direction {
+                case "up": up += 1
+                case "down": down += 1
+                case "neutral": neutral += 1
+                default: break
+                }
+
+                switch record.validation {
+                case "verified": verified += 1
+                case "pending": pending += 1
+                case "blocked": blocked += 1
+                default: break
+                }
+
+                if record.analyzedAt > latestAnalyzedAt {
+                    latestAnalyzedAt = record.analyzedAt
+                }
             }
-            .sorted { $0.date < $1.date }
+
+            let summary = DailyAnalysisSummary(
+                date: date,
+                records: records.count,
+                securities: tickers.count,
+                up: up,
+                down: down,
+                neutral: neutral,
+                verified: verified,
+                pending: pending,
+                blocked: blocked,
+                latestAnalyzedAt: latestAnalyzedAt
+            )
+            summaries.append(summary)
+        }
+
+        return summaries.sorted { $0.date < $1.date }
     }
 }
