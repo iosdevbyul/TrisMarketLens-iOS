@@ -16,12 +16,15 @@ struct BacktestingOperationsView: View {
 
     let page: Page
     private let source: any BacktestingOperationsSource
+    private let diagnostic: ResearchConnectionDiagnostic?
+    @State private var connection = ResearchConnectionReport.notConfigured
     @State private var baseline: BaselineBacktestSnapshot?
     @State private var operations = OperationsSnapshot.disconnected
     @State private var loading = true
     @State private var failed = false
 
-    init(page: Page, source: any BacktestingOperationsSource = DisconnectedBacktestingOperationsSource()) {
+    init(page: Page, source: any BacktestingOperationsSource = DisconnectedBacktestingOperationsSource(), diagnostic: ResearchConnectionDiagnostic? = nil) {
+        self.diagnostic = diagnostic
         self.page = page
         self.source = source
     }
@@ -32,9 +35,13 @@ struct BacktestingOperationsView: View {
                 Text(page.title)
                     .font(.largeTitle.bold())
                     .foregroundStyle(WakColor.textPrimary)
-                Label("Research API not connected", systemImage: "info.circle")
+                Label(diagnostic == nil ? "Research API not connected" : "Research API configured", systemImage: "info.circle")
                     .font(.footnote)
                     .foregroundStyle(WakColor.textSecondary)
+
+                if page == .operations {
+                    connectionContent
+                }
 
                 if loading {
                     ProgressView("Loading research")
@@ -53,6 +60,7 @@ struct BacktestingOperationsView: View {
         .background(WakColor.background)
         .navigationTitle(page.title)
         .task {
+            if page == .operations { await refreshConnection() }
             loading = true
             failed = false
             do {
@@ -65,6 +73,31 @@ struct BacktestingOperationsView: View {
             }
             loading = false
         }
+    }
+
+    private var connectionContent: some View {
+        WakCard {
+            VStack(alignment: .leading, spacing: WakSpacing.small) {
+                WakSectionHeader("API connectivity")
+                Text(connection.state == .reachable ? "Health endpoint reachable" :
+                     connection.state == .notConfigured ? "Not configured" :
+                     connection.state == .incompatible ? "Incompatible response" :
+                     connection.state == .unhealthy ? "Unhealthy response" : "Unavailable")
+                    .font(.headline)
+                Text(connection.detail)
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
+                if diagnostic != nil {
+                    Button("Check connection again") {
+                        Task { await refreshConnection() }
+                    }
+                }
+            }
+        }
+    }
+
+    private func refreshConnection() async {
+        connection = await diagnostic?.check() ?? .notConfigured
     }
 
     @ViewBuilder private var backtestingContent: some View {
