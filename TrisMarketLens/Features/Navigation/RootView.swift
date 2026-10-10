@@ -15,6 +15,10 @@ struct RootView: View {
         } detail: {
             if selection == .overview || selection == nil {
                 OverviewView()
+            } else if selection == .stocks {
+                NavigationStack {
+                    StocksView()
+                }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
             }
