@@ -19,6 +19,10 @@ struct RootView: View {
                 NavigationStack {
                     StocksView()
                 }
+            } else if selection == .screener {
+                NavigationStack {
+                    ScreenerView()
+                }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
             }
