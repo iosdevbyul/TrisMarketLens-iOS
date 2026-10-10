@@ -1,17 +1,19 @@
 import SwiftUI
 
 struct RootView: View {
-    @State private var selection: AppSection = .overview
+    @State private var selection: AppSection? = .overview
 
     var body: some View {
         NavigationSplitView {
-            List(AppSection.allCases, selection: $selection) { section in
-                Label(section.title, systemImage: section.symbol)
-                    .tag(section)
+            List(selection: $selection) {
+                ForEach(AppSection.allCases) { section in
+                    Label(section.title, systemImage: section.symbol)
+                        .tag(section)
+                }
             }
             .navigationTitle("TrisMarketLens")
         } detail: {
-            SectionPlaceholderView(section: selection)
+            SectionPlaceholderView(section: selection ?? .overview)
         }
     }
 }
