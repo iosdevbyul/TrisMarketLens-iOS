@@ -1,0 +1,84 @@
+"""Offline contract tests for the read-only live API smoke checker."""
+import importlib.util
+import io
+import json
+from pathlib import Path
+import unittest
+from unittest.mock import patch
+import urllib.error
+
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "verify_research_api.py"
+spec = importlib.util.spec_from_file_location("verify_research_api", SCRIPT)
+checker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(checker)
+
+
+class FakeResponse:
+    def __init__(self, body):
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def read(self, size):
+        return self.body[:size]
+
+
+class LiveAPISmokeTests(unittest.TestCase):
+    def test_health_and_all_supported_routes(self):
+        def urlopen(request, timeout):
+            path = request.full_url.split(".test", 1)[-1]
+            self.assertEqual(request.get_method(), "GET")
+            self.assertEqual(request.get_header("Accept"), "application/json")
+            if path == "/api/v1/health":
+                data = {"status": "ok", "service": "DonghakStockVision", "mode": "read_only"}
+            elif path in ("/api/v1/stocks", "/api/v1/models", "/api/v1/evidence"):
+                data = []
+            else:
+                data = {}
+            return FakeResponse(json.dumps(data).encode())
+
+        with patch.object(checker.urllib.request, "urlopen", side_effect=urlopen):
+            with patch("sys.stdout", new_callable=io.StringIO) as output:
+                self.assertEqual(checker.verify("https://research.test", 2, "005930"), 0)
+                self.assertIn("Health: REACHABLE", output.getvalue())
+
+    def test_503_reader_is_not_success(self):
+        def urlopen(request, timeout):
+            if request.full_url.endswith("/health"):
+                return FakeResponse(b'{"status":"ok","service":"DonghakStockVision","mode":"read_only"}')
+            raise urllib.error.HTTPError(request.full_url, 503, "unconfigured", {}, None)
+
+        with patch.object(checker.urllib.request, "urlopen", side_effect=urlopen):
+            with patch("sys.stdout", new_callable=io.StringIO) as output:
+                self.assertEqual(checker.verify("https://research.test", 2, None), 1)
+                self.assertIn("NOT_CONFIGURED", output.getvalue())
+
+    def test_wrong_health_identity_blocks_all_other_requests(self):
+        calls = []
+
+        def urlopen(request, timeout):
+            calls.append(request.full_url)
+            return FakeResponse(b'{"status":"ok","service":"Unknown","mode":"read_only"}')
+
+        with patch.object(checker.urllib.request, "urlopen", side_effect=urlopen):
+            with patch("sys.stdout", new_callable=io.StringIO):
+                self.assertEqual(checker.verify("https://research.test", 2, None), 2)
+        self.assertEqual(len(calls), 1)
+
+    def test_malformed_json_is_incompatible(self):
+        with patch.object(checker.urllib.request, "urlopen", return_value=FakeResponse(b'not-json')):
+            state, _ = checker.request("https://research.test", "/api/v1/health", 2)
+        self.assertEqual(state, "INCOMPATIBLE")
+
+    def test_rejects_untrusted_base_url_parameters(self):
+        with patch("sys.stderr", new_callable=io.StringIO):
+            self.assertEqual(checker.verify("https://name:pass@research.test", 2, None), 2)
+            self.assertEqual(checker.verify("file:///tmp", 2, None), 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
