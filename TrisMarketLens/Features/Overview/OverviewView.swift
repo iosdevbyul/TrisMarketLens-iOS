@@ -77,7 +77,7 @@ struct OverviewView: View {
             ForEach(items) { item in
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: item.state == .verified ? "checkmark.circle" : "circle.dotted")
-                        .foregroundStyle(item.state == .verified ? .green : .secondary)
+                        .foregroundStyle(item.state == .verified ? Color.green : Color.secondary)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.label)
                             .font(.headline)
