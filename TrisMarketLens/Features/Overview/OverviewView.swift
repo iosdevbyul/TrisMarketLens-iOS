@@ -1,4 +1,5 @@
 import SwiftUI
+import WakTrainerDesignSystem
 
 struct OverviewView: View {
     private let source: any ProjectStatusSource
@@ -17,6 +18,7 @@ struct OverviewView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text("TrisMarketLens")
+                        .foregroundStyle(WakColor.textPrimary)
                         .font(.largeTitle.bold())
                     Label("Mock data · Not live research", systemImage: "info.circle")
                         .font(.footnote)
@@ -33,14 +35,15 @@ struct OverviewView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Text(metric.value)
-                                    .font(.title2.bold())
+                                    .font(WakTypography.metricMedium)
+                                    .foregroundStyle(WakColor.textPrimary)
                                 Text(metric.detail)
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
-                            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                            .background(WakColor.surface, in: RoundedRectangle(cornerRadius: WakRadius.card))
                         }
                     }
                     checkpointSection("Research readiness", items: status.evidence)
@@ -56,8 +59,9 @@ struct OverviewView: View {
                 }
             }
             .frame(maxWidth: 760, alignment: .leading)
-            .padding(20)
+            .padding(WakSpacing.regular)
         }
+        .background(WakColor.background)
         .navigationTitle("Overview")
         .task {
             do {
@@ -72,8 +76,7 @@ struct OverviewView: View {
 
     private func checkpointSection(_ title: String, items: [ResearchCheckpoint]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.title3.bold())
+            WakSectionHeader(LocalizedStringKey(title))
             ForEach(items) { item in
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: item.state == .verified ? "checkmark.circle" : "circle.dotted")

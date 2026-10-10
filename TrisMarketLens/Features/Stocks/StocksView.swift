@@ -1,4 +1,5 @@
 import SwiftUI
+import WakTrainerDesignSystem
 
 struct StocksView: View {
     private let source: any StockSource
@@ -35,16 +36,19 @@ struct StocksView: View {
                             StockDetailView(ticker: stock.ticker, source: source)
                         } label: {
                             VStack(alignment: .leading, spacing: 5) {
-                                Text(stock.displayName).font(.headline)
+                                Text(stock.displayName).font(WakTypography.sectionTitle)
+                                    .foregroundStyle(WakColor.textPrimary)
                                 Text("\(stock.ticker) · \(stock.market) · \(stock.sectorLabel)")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, WakSpacing.xSmall)
                         }
                     }
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(WakColor.background)
         .searchable(text: $query, prompt: "Search ticker, name, or sector")
         .navigationTitle("Stocks")
         .task {

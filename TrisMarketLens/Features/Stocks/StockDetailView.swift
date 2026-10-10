@@ -1,4 +1,5 @@
 import SwiftUI
+import WakTrainerDesignSystem
 
 struct StockDetailView: View {
     let ticker: String
@@ -42,6 +43,8 @@ struct StockDetailView: View {
                 ContentUnavailableView("Stock not found", systemImage: "magnifyingglass")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(WakColor.background)
         .navigationTitle(detail?.displayName ?? ticker)
         .task(id: ticker) {
             loading = true
