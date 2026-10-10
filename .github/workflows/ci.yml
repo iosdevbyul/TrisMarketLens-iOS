@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
+      - name: Test read-only API verification script
+        run: python3 -m unittest discover -s tests -p 'test_live_api_smoke.py' -v
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
