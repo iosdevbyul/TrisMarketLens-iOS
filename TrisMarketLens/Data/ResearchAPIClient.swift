@@ -1,4 +1,5 @@
 import Foundation
+import NetworkKit
 
 enum ResearchDataMode: String {
     case disconnected
@@ -14,10 +15,10 @@ enum ResearchAPIError: Error, Equatable {
     case invalidPayload
 }
 
-/// Shared read-only transport. HTTP failures never fall back to sample research results.
+/// App-level contract remains stable while NetworkKit owns the HTTP transport.
 struct ResearchAPIClient {
     let baseURL: URL
-    let session: URLSession
+    private let networkClient: any NetworkClient
 
     init(baseURL: URL, session: URLSession = .shared) throws {
         guard let components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false),
@@ -29,7 +30,23 @@ struct ResearchAPIClient {
             throw ResearchAPIError.invalidConfiguration
         }
         self.baseURL = baseURL
-        self.session = session
+        self.networkClient = URLSessionNetworkClient(
+            configuration: NetworkConfiguration(baseURL: baseURL, timeout: 10),
+            session: session
+        )
+    }
+
+    init(baseURL: URL, networkClient: any NetworkClient) throws {
+        guard let components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(),
+              ["https", "http"].contains(scheme),
+              components.host != nil,
+              components.user == nil, components.password == nil,
+              components.query == nil, components.fragment == nil else {
+            throw ResearchAPIError.invalidConfiguration
+        }
+        self.baseURL = baseURL
+        self.networkClient = networkClient
     }
 
     func fetch<T: Decodable>(_ type: T.Type, path: [String]) async throws -> T {
@@ -37,33 +54,26 @@ struct ResearchAPIClient {
               path.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") }) else {
             throw ResearchAPIError.invalidConfiguration
         }
-        var url = baseURL
-        for segment in path {
-            url.appendPathComponent(segment)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 10
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        let data: Data
-        let response: URLResponse
+        let endpoint = ResearchEndpoint(path: path.joined(separator: "/"))
         do {
-            (data, response) = try await session.data(for: request)
+            return try await networkClient.request(endpoint: endpoint, responseType: type)
+        } catch let error as NetworkError {
+            switch error {
+            case .serverError(let status): throw ResearchAPIError.httpStatus(status)
+            case .decodingFailed: throw ResearchAPIError.invalidPayload
+            case .invalidResponse: throw ResearchAPIError.invalidResponse
+            case .invalidURL: throw ResearchAPIError.invalidConfiguration
+            case .unknown: throw ResearchAPIError.transport
+            }
         } catch {
             throw ResearchAPIError.transport
         }
-
-        guard let http = response as? HTTPURLResponse else {
-            throw ResearchAPIError.invalidResponse
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw ResearchAPIError.httpStatus(http.statusCode)
-        }
-        do {
-            return try JSONDecoder().decode(type, from: data)
-        } catch {
-            throw ResearchAPIError.invalidPayload
-        }
     }
+}
+
+private struct ResearchEndpoint: Endpoint {
+    let path: String
+    let method: HTTPMethod = .get
+    let headers = ["Accept": "application/json"]
 }

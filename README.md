@@ -64,3 +64,10 @@ Set the following environment variables in the Xcode scheme (Run â†’ Arguments â
 - A configured HTTP URL does not imply the server is reachable or responses are verified. Do not enter real trading credentials in scheme variables.
 
 The app remains iOS 17+, and uses WakTrainerDesignSystem.
+
+
+## NetworkKit transport
+
+Research HTTP calls now flow through the reusable [TrisNetworkKit](https://github.com/iosdevbyul/TrisNetworkKit) Swift package. `ResearchAPIClient` keeps its typed `fetch(_:path:)` contract for existing research data-source adapters while translating NetworkKit errors into the established `ResearchAPIError` cases.
+
+The package revision is pinned until the compatibility change is CI-tested and merged in TrisNetworkKit. Merge the NetworkKit compatibility PR before the app integration PR; prefer a tested release tag later. `TRIS_DATA_MODE` and `TRIS_API_BASE_URL` remain unchanged. API mode never falls back to mock research outputs.
