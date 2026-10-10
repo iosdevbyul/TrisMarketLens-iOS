@@ -13,12 +13,13 @@ struct HTTPScreenerSource: ScreenerSource {
         }
         var seen = Set<String>()
         for entry in snapshot.entries {
-            guard !entry.ticker.isEmpty,
-                  !entry.analysisId.isEmpty,
-                  !entry.modelId.isEmpty,
-                  ["up", "down", "neutral"].contains(entry.direction),
-                  ["verified", "pending", "blocked"].contains(entry.validation),
-                  entry.score.map({ $0.isFinite && (0...1).contains($0) }) ?? true,
+            guard !entry.analysisId.isEmpty,
+                  ResearchPayloadIntegrity.analysisFields(
+                      ticker: entry.ticker, modelId: entry.modelId,
+                      modelVersion: entry.modelVersion, date: entry.dataThrough,
+                      analyzedAt: entry.analyzedAt, direction: entry.direction,
+                      validation: entry.validation, score: entry.score
+                  ),
                   seen.insert(entry.id).inserted else {
                 throw ResearchAPIError.invalidPayload
             }
@@ -40,14 +41,7 @@ struct HTTPStockResearchSource: StockResearchSource {
         }
         var previous = ""
         for bar in series.bars {
-            let noTrade = bar.open == 0 && bar.high == 0 && bar.low == 0 && bar.close > 0 && bar.volume == 0
-            let ordinary = bar.open > 0 && bar.close > 0 && bar.low > 0 &&
-                bar.high >= max(bar.open, bar.close, bar.low) &&
-                bar.low <= min(bar.open, bar.close)
-            guard bar.date > previous,
-                  bar.open.isFinite, bar.high.isFinite,
-                  bar.low.isFinite, bar.close.isFinite,
-                  bar.volume >= 0, (ordinary || noTrade) else {
+            guard ResearchPayloadIntegrity.bar(bar, after: previous) else {
                 throw ResearchAPIError.invalidPayload
             }
             previous = bar.date
@@ -67,9 +61,12 @@ struct HTTPStockResearchSource: StockResearchSource {
         for item in snapshot.records {
             guard item.ticker == ticker, !item.id.isEmpty,
                   ids.insert(item.id).inserted,
-                  ["up", "down", "neutral"].contains(item.direction),
-                  ["verified", "pending", "blocked"].contains(item.validation),
-                  item.score.map({ $0.isFinite && (0...1).contains($0) }) ?? true else {
+                  ResearchPayloadIntegrity.analysisFields(
+                      ticker: item.ticker, modelId: item.modelId,
+                      modelVersion: item.modelVersion, date: item.dataThrough,
+                      analyzedAt: item.analyzedAt, direction: item.direction,
+                      validation: item.validation, score: item.score
+                  ) else {
                 throw ResearchAPIError.invalidPayload
             }
         }
@@ -86,13 +83,9 @@ struct HTTPStockResearchSource: StockResearchSource {
         }
         var ids = Set<String>()
         for item in snapshot.evaluations {
-            guard item.ticker == ticker, !item.id.isEmpty,
+            guard item.ticker == ticker,
                   ids.insert(item.id).inserted,
-                  (1...1000).contains(item.horizonSessions),
-                  ["correct", "incorrect", "inconclusive", "pending"].contains(item.verdict),
-                  item.referencePrice.map({ $0.isFinite && $0 > 0 }) ?? true,
-                  item.evaluationPrice.map({ $0.isFinite && $0 > 0 }) ?? true,
-                  item.realizedReturn.map(\.isFinite) ?? true else {
+                  ResearchPayloadIntegrity.evaluation(item) else {
                 throw ResearchAPIError.invalidPayload
             }
         }
