@@ -49,6 +49,7 @@ struct BacktestingOperationsView: View {
                     ProgressView("Loading research")
                 } else if failed {
                     ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle")
+                    Button("Retry") { Task { await reload() } }
                 } else {
                     switch page {
                     case .backtesting: backtestingContent
@@ -61,20 +62,32 @@ struct BacktestingOperationsView: View {
         }
         .background(WakColor.background)
         .navigationTitle(page.title)
-        .task {
-            if page == .operations { await refreshConnection() }
-            loading = true
-            failed = false
-            do {
-                switch page {
-                case .backtesting: baseline = try await source.getBaseline()
-                case .operations: operations = try await source.getOperations()
-                }
-            } catch {
-                failed = true
+        .refreshable { await reload() }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        guard !Task.isCancelled else { return }
+        loading = true
+        failed = false
+        if page == .operations { await refreshConnection() }
+        guard !Task.isCancelled else { return }
+        do {
+            switch page {
+            case .backtesting:
+                let response = try await source.getBaseline()
+                guard !Task.isCancelled else { return }
+                baseline = response
+            case .operations:
+                let response = try await source.getOperations()
+                guard !Task.isCancelled else { return }
+                operations = response
             }
-            loading = false
+        } catch {
+            guard !Task.isCancelled else { return }
+            failed = true
         }
+        loading = false
     }
 
     private var connectionContent: some View {
@@ -118,9 +131,13 @@ struct BacktestingOperationsView: View {
     }
 
     private func refreshConnection() async {
-        connection = await diagnostic?.check() ?? .notConfigured
-        if let diagnostic, connection.state == .reachable {
-            endpointResults = await ResearchEndpointDiagnostic(client: diagnostic.client).check()
+        let response = await diagnostic?.check() ?? .notConfigured
+        guard !Task.isCancelled else { return }
+        connection = response
+        if let diagnostic, response.state == .reachable {
+            let results = await ResearchEndpointDiagnostic(client: diagnostic.client).check()
+            guard !Task.isCancelled else { return }
+            endpointResults = results
         } else {
             endpointResults = []
         }
