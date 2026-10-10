@@ -53,7 +53,7 @@ struct RootView: View {
                 }
             } else if selection == .operations {
                 NavigationStack {
-                    BacktestingOperationsView(page: .operations, source: environment.operations())
+                    BacktestingOperationsView(page: .operations, source: environment.operations(), diagnostic: environment.client.map { ResearchConnectionDiagnostic(client: $0) })
                 }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
