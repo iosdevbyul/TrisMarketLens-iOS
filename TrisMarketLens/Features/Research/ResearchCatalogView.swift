@@ -115,6 +115,7 @@ struct ResearchCatalogView: View {
             failure = true
         }
         loading = false
+        requesting = false
     }
 }
 
@@ -122,6 +123,7 @@ private struct ModelResearchDetailView: View {
     let id: String
     let source: any ResearchCatalogSource
     @State private var loading = true
+    @State private var requesting = false
     @State private var errorMessage: String?
     @State private var detail: ModelDetail?
 
@@ -160,7 +162,8 @@ private struct ModelResearchDetailView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled, !loading || (detail == nil && errorMessage == nil) else { return }
+        guard !Task.isCancelled, !requesting else { return }
+        requesting = true
         loading = true
         do {
             let response = try await source.getModel(id: id)
@@ -173,6 +176,7 @@ private struct ModelResearchDetailView: View {
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
+        requesting = false
     }
 }
 
@@ -180,6 +184,7 @@ private struct EvidenceResearchDetailView: View {
     let id: String
     let source: any ResearchCatalogSource
     @State private var loading = true
+    @State private var requesting = false
     @State private var errorMessage: String?
     @State private var detail: EvidenceDetail?
 
@@ -221,7 +226,8 @@ private struct EvidenceResearchDetailView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled, !loading || (detail == nil && errorMessage == nil) else { return }
+        guard !Task.isCancelled, !requesting else { return }
+        requesting = true
         loading = true
         do {
             let response = try await source.getEvidenceLayer(id: id)
@@ -234,5 +240,6 @@ private struct EvidenceResearchDetailView: View {
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
+        requesting = false
     }
 }
