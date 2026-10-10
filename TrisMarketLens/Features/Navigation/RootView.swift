@@ -26,10 +26,10 @@ struct RootView: View {
             .navigationTitle("TrisMarketLens")
         } detail: {
             if selection == .overview || selection == nil {
-                OverviewView(source: environment.project(), isDemo: environment.mode != .http)
+                OverviewView(source: environment.project(), isDemo: environment.mode == .mock)
             } else if selection == .stocks {
                 NavigationStack {
-                    StocksView(source: environment.stocks(), isDemo: environment.mode != .http)
+                    StocksView(source: environment.stocks(), isDemo: environment.mode == .mock)
                 }
             } else if selection == .screener {
                 NavigationStack {
