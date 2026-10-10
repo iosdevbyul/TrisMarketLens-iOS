@@ -23,6 +23,7 @@ targets:
     dependencies:
       - package: WakTrainerDesignSystem
       - package: TrisNetworkKit
+        product: NetworkKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iosdevbyul.TrisMarketLens
@@ -37,6 +38,8 @@ targets:
       - path: Tests
     dependencies:
       - target: TrisMarketLens
+      - package: TrisNetworkKit
+        product: NetworkKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
