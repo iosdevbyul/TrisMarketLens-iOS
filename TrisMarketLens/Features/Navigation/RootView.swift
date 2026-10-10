@@ -27,6 +27,14 @@ struct RootView: View {
                 NavigationStack {
                     AnalysisHistoryView()
                 }
+             } else if selection == .models {
+                NavigationStack {
+                    ResearchCatalogView(kind: .models)
+                }
+            } else if selection == .evidence {
+                NavigationStack {
+                    ResearchCatalogView(kind: .evidence)
+                }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
             }
