@@ -87,7 +87,7 @@ struct AnalysisHistoryView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 history = []
-                errorMessage = "Analysis history unavailable. No mock fallback is shown."
+                errorMessage = ResearchErrorGuidance.message(for: error)
             }
             isLoading = false
     }

@@ -80,7 +80,7 @@ struct OverviewView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 status = nil
-                errorMessage = "Could not load the selected data source."
+                errorMessage = ResearchErrorGuidance.message(for: error)
             }
     }
 
