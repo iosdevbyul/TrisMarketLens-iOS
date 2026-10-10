@@ -45,6 +45,16 @@ struct ResearchEnvironment {
         return UnavailableStockSource()
     }
 
+    func screener() -> any ScreenerSource {
+        if let client { return HTTPScreenerSource(client: client) }
+        return DisconnectedScreenerSource()
+    }
+
+    func stockResearch() -> any StockResearchSource {
+        if let client { return HTTPStockResearchSource(client: client) }
+        return DisconnectedStockResearchSource()
+    }
+
     func catalog() -> any ResearchCatalogSource {
         if let client { return HTTPResearchCatalogSource(client: client) }
         return DisconnectedResearchCatalogSource()
