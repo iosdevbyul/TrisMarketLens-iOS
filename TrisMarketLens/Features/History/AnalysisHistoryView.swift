@@ -4,11 +4,13 @@ import WakTrainerDesignSystem
 
 struct AnalysisHistoryView: View {
     private let source: any ScreenerSource
+    private let isConnected: Bool
     @State private var history: [DailyAnalysisSummary] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
 
-    init(source: any ScreenerSource = DisconnectedScreenerSource()) {
+    init(source: any ScreenerSource = DisconnectedScreenerSource(), isConnected: Bool = false) {
+        self.isConnected = isConnected
         self.source = source
     }
 
@@ -20,7 +22,7 @@ struct AnalysisHistoryView: View {
                     .foregroundStyle(WakColor.textPrimary)
                 Text("Observed model analysis activity only. This is not a backtest.")
                     .foregroundStyle(WakColor.textSecondary)
-                Label("Not connected · No verified history loaded", systemImage: "info.circle")
+                Label(isConnected ? "Research API configured" : "Not connected · No verified history loaded", systemImage: "info.circle")
                     .font(.footnote)
                     .foregroundStyle(WakColor.textSecondary)
 
