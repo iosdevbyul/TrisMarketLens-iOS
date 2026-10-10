@@ -11,6 +11,9 @@ packages:
   WakTrainerDesignSystem:
     url: https://github.com/iosdevbyul/WakTrainerDesignSystem
     revision: 0477e6cf7a04b6e251b5e3b05a573dd1ad61f612
+  TrisNetworkKit:
+    url: https://github.com/iosdevbyul/TrisNetworkKit
+    revision: a3d367495874e500c89b1825796b12f1fc8ffe07
 targets:
   TrisMarketLens:
     type: application
@@ -19,6 +22,7 @@ targets:
       - path: TrisMarketLens
     dependencies:
       - package: WakTrainerDesignSystem
+      - package: TrisNetworkKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iosdevbyul.TrisMarketLens
