@@ -23,6 +23,10 @@ struct RootView: View {
                 NavigationStack {
                     ScreenerView()
                 }
+            } else if selection == .history {
+                NavigationStack {
+                    AnalysisHistoryView()
+                }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
             }
