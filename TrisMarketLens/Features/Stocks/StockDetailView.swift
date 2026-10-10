@@ -1,5 +1,6 @@
 import SwiftUI
 import WakTrainerDesignSystem
+import WakTrainerDesignSystem
 
 struct StockDetailView: View {
     let ticker: String
@@ -31,13 +32,9 @@ struct StockDetailView: View {
                     Text("No inferred quality state.")
                         .foregroundStyle(.secondary)
                 }
-                Section("AI analysis and prediction evaluation") {
-                    Text("No verified analysis or evaluation loaded.")
-                        .foregroundStyle(.secondary)
-                }
-                Section("Price and volume") {
-                    Text(detail.chartNote)
-                        .foregroundStyle(.secondary)
+                Section("Research evidence") {
+                    StockResearchSections(ticker: ticker, source: DisconnectedStockResearchSource())
+                        .listRowBackground(WakColor.background)
                 }
             } else {
                 ContentUnavailableView("Stock not found", systemImage: "magnifyingglass")
