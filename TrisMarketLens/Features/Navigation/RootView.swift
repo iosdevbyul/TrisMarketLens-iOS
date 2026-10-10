@@ -13,7 +13,11 @@ struct RootView: View {
             }
             .navigationTitle("TrisMarketLens")
         } detail: {
-            SectionPlaceholderView(section: selection ?? .overview)
+            if selection == .overview || selection == nil {
+                OverviewView()
+            } else if let selection {
+                SectionPlaceholderView(section: selection)
+            }
         }
     }
 }
@@ -27,16 +31,13 @@ private struct SectionPlaceholderView: View {
                 Label(section.title, systemImage: section.symbol)
                     .font(.largeTitle.bold())
 
-                Text("Research data is not connected yet.")
-                    .foregroundStyle(.secondary)
-
                 ContentUnavailableView(
                     "Waiting for verified data",
                     systemImage: "externaldrive.badge.questionmark",
                     description: Text("This screen will use the same validated research contracts as TrisMarketLens on the web.")
                 )
 
-                Text("Mock mode · No investment signals or performance claims")
+                Text("No investment signals or performance claims")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
