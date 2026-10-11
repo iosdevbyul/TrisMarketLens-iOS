@@ -134,6 +134,7 @@ struct BacktestingOperationsView: View {
     }
 
     private func refreshConnection() async {
+        let requestID = activeRequestID
         let response = await diagnostic?.check() ?? .notConfigured
         guard !Task.isCancelled, activeRequestID == requestID else { return }
         connection = response
