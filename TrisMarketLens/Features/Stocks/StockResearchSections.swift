@@ -7,6 +7,7 @@ struct StockResearchSections: View {
     let source: any StockResearchSource
 
     @State private var bars: [OhlcvBar] = []
+    @State private var selectedPeriod: StockChartPeriod = .quarter
     @State private var analyses: [StockAnalysisRecord] = []
     @State private var evaluations: [PredictionEvaluation] = []
     @State private var pricesLoading = true
@@ -29,7 +30,14 @@ struct StockResearchSections: View {
                         } else if bars.isEmpty {
                             emptyMessage("No validated OHLCV prices available.")
                         } else {
-                            Chart(bars) { bar in
+                            Picker("Period", selection: $selectedPeriod) {
+                                ForEach(StockChartPeriod.allCases) { period in
+                                    Text(period.rawValue).tag(period)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityLabel("Price chart period")
+                            Chart(selectedPeriod.filter(bars)) { bar in
                                 BarMark(
                                     x: .value("Session", bar.date),
                                     yStart: .value("Low", bar.low),
@@ -47,6 +55,18 @@ struct StockResearchSections: View {
                             }
                             .frame(height: 220)
                             .accessibilityLabel("Historical OHLCV chart")
+                            Text("Daily sessions: \\(selectedPeriod.filter(bars).count)")
+                                .font(.caption)
+                                .foregroundStyle(WakColor.textSecondary)
+                            Chart(selectedPeriod.filter(bars)) { bar in
+                                BarMark(
+                                    x: .value("Session", bar.date),
+                                    y: .value("Volume", bar.volume)
+                                )
+                                .foregroundStyle(WakColor.primary)
+                            }
+                            .frame(height: 100)
+                            .accessibilityLabel("Historical traded volume chart")
                             Text("Bars are displayed only when supplied by the selected research source.")
                                 .font(.footnote)
                                 .foregroundStyle(WakColor.textSecondary)
