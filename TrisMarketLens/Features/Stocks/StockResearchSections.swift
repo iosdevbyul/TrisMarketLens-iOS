@@ -8,6 +8,7 @@ struct StockResearchSections: View {
 
     @State private var bars: [OhlcvBar] = []
     @State private var selectedPeriod: StockChartPeriod = .quarter
+    @State private var selectedSession: String?
     @State private var analyses: [StockAnalysisRecord] = []
     @State private var evaluations: [PredictionEvaluation] = []
     @State private var pricesLoading = true
@@ -53,8 +54,31 @@ struct StockResearchSections: View {
                                 )
                                 .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
                             }
+                            .chartXSelection(value: $selectedSession)
+                            .chartXAxis {
+                                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                                    AxisTick()
+                                    AxisGridLine()
+                                    AxisValueLabel {
+                                        if let date = value.as(String.self) {
+                                            Text(String(date.suffix(5)))
+                                        }
+                                    }
+                                }
+                            }
                             .frame(height: 220)
                             .accessibilityLabel("Historical OHLCV chart")
+                            if let session = selectedPeriod.filter(bars).first(where: { $0.date == selectedSession }) {
+                                VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
+                                    Text(session.date).font(.headline)
+                                    LabeledContent("Open", value: session.open.formatted())
+                                    LabeledContent("High", value: session.high.formatted())
+                                    LabeledContent("Low", value: session.low.formatted())
+                                    LabeledContent("Close", value: session.close.formatted())
+                                    LabeledContent("Volume", value: session.volume.formatted())
+                                }
+                                .accessibilityElement(children: .combine)
+                            }
                             Text("Daily sessions: \\(selectedPeriod.filter(bars).count)")
                                 .font(.caption)
                                 .foregroundStyle(WakColor.textSecondary)
