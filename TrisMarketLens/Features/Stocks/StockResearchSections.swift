@@ -18,6 +18,12 @@ struct StockResearchSections: View {
     @State private var analysisError: String?
     @State private var evaluationsError: String?
 
+    private var visibleBars: [OhlcvBar] { selectedPeriod.filter(bars) }
+
+    private var selectedBar: OhlcvBar? {
+        StockChartSelection.bar(for: selectedSession, in: visibleBars)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: WakSpacing.regular) {
             WakCard {
@@ -39,7 +45,8 @@ struct StockResearchSections: View {
                             .pickerStyle(.segmented)
                             .accessibilityLabel("Price chart period")
                             .onChange(of: selectedPeriod) { _, _ in selectedSession = nil }
-                            Chart(selectedPeriod.filter(bars)) { bar in
+                            Chart {
+                                ForEach(visibleBars) { bar in
                                 BarMark(
                                     x: .value("Session", bar.date),
                                     yStart: .value("Low", bar.low),
@@ -54,6 +61,12 @@ struct StockResearchSections: View {
                                     width: 6
                                 )
                                 .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
+                                }
+                                if let selectedBar {
+                                    RuleMark(x: .value("Selected session", selectedBar.date))
+                                        .foregroundStyle(WakColor.textSecondary)
+                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                                }
                             }
                             .chartXSelection(value: $selectedSession)
                             .chartXAxis {
@@ -69,7 +82,7 @@ struct StockResearchSections: View {
                             }
                             .frame(height: 220)
                             .accessibilityLabel("Historical OHLCV chart")
-                            if let session = selectedPeriod.filter(bars).first(where: { $0.date == selectedSession }) {
+                            if let session = selectedBar {
                                 VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                                     Text(session.date).font(.headline)
                                     LabeledContent("Open", value: session.open.formatted())
@@ -98,12 +111,19 @@ struct StockResearchSections: View {
                             Text("Daily sessions: \(selectedPeriod.filter(bars).count)")
                                 .font(.caption)
                                 .foregroundStyle(WakColor.textSecondary)
-                            Chart(selectedPeriod.filter(bars)) { bar in
-                                BarMark(
-                                    x: .value("Session", bar.date),
-                                    y: .value("Volume", bar.volume)
-                                )
-                                .foregroundStyle(WakColor.primary)
+                            Chart {
+                                ForEach(visibleBars) { bar in
+                                    BarMark(
+                                        x: .value("Session", bar.date),
+                                        y: .value("Volume", bar.volume)
+                                    )
+                                    .foregroundStyle(bar.date == selectedSession ? WakColor.textPrimary : WakColor.primary)
+                                }
+                                if let selectedBar {
+                                    RuleMark(x: .value("Selected session", selectedBar.date))
+                                        .foregroundStyle(WakColor.textSecondary)
+                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                                }
                             }
                             .frame(height: 100)
                             .chartXAxis {
