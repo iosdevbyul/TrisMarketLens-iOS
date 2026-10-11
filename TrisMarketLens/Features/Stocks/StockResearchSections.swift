@@ -20,6 +20,8 @@ struct StockResearchSections: View {
 
     private var visibleBars: [OhlcvBar] { selectedPeriod.filter(bars) }
 
+    private var displayMode: StockChartDisplayMode { .mode(sessionCount: visibleBars.count) }
+
     private var selectedBar: OhlcvBar? {
         StockChartSelection.bar(for: selectedSession, in: visibleBars)
     }
@@ -46,21 +48,31 @@ struct StockResearchSections: View {
                             .accessibilityLabel("Price chart period")
                             .onChange(of: selectedPeriod) { _, _ in selectedSession = nil }
                             Chart {
-                                ForEach(visibleBars) { bar in
-                                BarMark(
-                                    x: .value("Session", bar.date),
-                                    yStart: .value("Low", bar.low),
-                                    yEnd: .value("High", bar.high),
-                                    width: 2
-                                )
-                                .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
-                                RectangleMark(
-                                    x: .value("Session", bar.date),
-                                    yStart: .value("Open or close", min(bar.open, bar.close)),
-                                    yEnd: .value("Close or open", max(bar.open, bar.close)),
-                                    width: 6
-                                )
-                                .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
+                                if displayMode == .closingLine {
+                                    ForEach(visibleBars) { bar in
+                                        LineMark(
+                                            x: .value("Session", bar.date),
+                                            y: .value("Close", bar.close)
+                                        )
+                                        .foregroundStyle(WakColor.primary)
+                                    }
+                                } else {
+                                    ForEach(visibleBars) { bar in
+                                        BarMark(
+                                            x: .value("Session", bar.date),
+                                            yStart: .value("Low", bar.low),
+                                            yEnd: .value("High", bar.high),
+                                            width: 2
+                                        )
+                                        .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
+                                        RectangleMark(
+                                            x: .value("Session", bar.date),
+                                            yStart: .value("Body low", min(bar.open, bar.close)),
+                                            yEnd: .value("Body high", max(bar.open, bar.close)),
+                                            width: 6
+                                        )
+                                        .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
+                                    }
                                 }
                                 if let selectedBar {
                                     RuleMark(x: .value("Selected session", selectedBar.date))
@@ -81,7 +93,12 @@ struct StockResearchSections: View {
                                 }
                             }
                             .frame(height: 220)
-                            .accessibilityLabel("Historical OHLCV chart")
+                            .accessibilityLabel(displayMode == .closingLine ? "Historical closing price chart" : "Historical OHLCV chart")
+                            if displayMode == .closingLine {
+                                Text("Showing closing prices as a line for readability across longer periods.")
+                                    .font(.caption)
+                                    .foregroundStyle(WakColor.textSecondary)
+                            }
                             if let session = selectedBar {
                                 VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                                     Text(session.date).font(.headline)
@@ -93,7 +110,7 @@ struct StockResearchSections: View {
                                 }
                                 .accessibilityElement(children: .combine)
                             }
-                            if let summary = StockChartSummary(bars: selectedPeriod.filter(bars)) {
+                            if let summary = StockChartSummary(bars: visibleBars) {
                                 VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                                     Text("Selected period summary")
                                         .font(.headline)
@@ -108,7 +125,7 @@ struct StockResearchSections: View {
                                 }
                                 .accessibilityElement(children: .combine)
                             }
-                            Text("Daily sessions: \(selectedPeriod.filter(bars).count)")
+                            Text("Daily sessions: \(visibleBars.count)")
                                 .font(.caption)
                                 .foregroundStyle(WakColor.textSecondary)
                             Chart {
