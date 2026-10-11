@@ -16,6 +16,7 @@ struct ResearchCatalogView: View {
     let kind: SectionKind
     private let source: any ResearchCatalogSource
     @State private var models: [ModelSummary] = []
+    @State private var activeRequestID = UUID()
     @State private var layers: [EvidenceLayerSummary] = []
     @State private var loading = true
     @State private var failure = false
@@ -94,22 +95,24 @@ struct ResearchCatalogView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled else { return }
+        let requestID = UUID()
+        activeRequestID = requestID
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         loading = true
         failure = false
         do {
             switch kind {
             case .models:
                 let response = try await source.getModels()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 models = response
             case .evidence:
                 let response = try await source.getEvidenceLayers()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 layers = response
             }
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             models = []
             layers = []
             failure = true
@@ -122,7 +125,7 @@ private struct ModelResearchDetailView: View {
     let id: String
     let source: any ResearchCatalogSource
     @State private var loading = true
-    @State private var requesting = false
+    @State private var activeRequestID = UUID()
     @State private var errorMessage: String?
     @State private var detail: ModelDetail?
 
@@ -161,21 +164,21 @@ private struct ModelResearchDetailView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled, !requesting else { return }
-        requesting = true
+        let requestID = UUID()
+        activeRequestID = requestID
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         loading = true
         do {
             let response = try await source.getModel(id: id)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             detail = response
             errorMessage = nil
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             detail = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
-        requesting = false
     }
 }
 
@@ -183,7 +186,7 @@ private struct EvidenceResearchDetailView: View {
     let id: String
     let source: any ResearchCatalogSource
     @State private var loading = true
-    @State private var requesting = false
+    @State private var activeRequestID = UUID()
     @State private var errorMessage: String?
     @State private var detail: EvidenceDetail?
 
@@ -225,20 +228,20 @@ private struct EvidenceResearchDetailView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled, !requesting else { return }
-        requesting = true
+        let requestID = UUID()
+        activeRequestID = requestID
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         loading = true
         do {
             let response = try await source.getEvidenceLayer(id: id)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             detail = response
             errorMessage = nil
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             detail = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
-        requesting = false
     }
 }
