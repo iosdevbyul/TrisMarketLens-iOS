@@ -54,10 +54,10 @@ Set the following environment variables in the Xcode scheme (Run â†’ Arguments â
 
 | Variable | Values | Default |
 |---|---|---|
-| `TRIS_DATA_MODE` | `mock`, `disconnected`, `http` | `mock` |
+| `TRIS_DATA_MODE` | Debug: `mock`, `disconnected`, `http`; Release: `disconnected`, `http` | Debug: `mock`; Release: `disconnected` |
 | `TRIS_API_BASE_URL` | Base HTTP(S) URL (required only for `http`) | unset |
 
-- **mock**: local demonstration fixtures on Overview and Stocks; other research views remain disconnected.
+- **mock**: Debug builds only; local demonstration fixtures on Overview and Stocks. Release builds reject explicit `mock` and never default to demo fixtures.
 - **disconnected**: no sample research data on Overview or Stocks.
 - **http**: Overview, Stocks, Models, Evidence, Backtesting and Operations use typed HTTP adapters. An invalid/missing URL produces a configuration error instead of silently switching to mock data.
 - AI Screener, Analysis History and per-stock OHLCV/analysis/evaluation remain disconnected until their HTTP sources are wired in a follow-up PR.
