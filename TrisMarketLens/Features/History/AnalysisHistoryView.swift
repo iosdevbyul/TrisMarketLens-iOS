@@ -6,6 +6,8 @@ struct AnalysisHistoryView: View {
     private let source: any ScreenerSource
     private let isConnected: Bool
     @State private var history: [DailyAnalysisSummary] = []
+    @State private var selectedRange: AnalysisHistoryRange = .recent30
+    private var visibleHistory: [DailyAnalysisSummary] { selectedRange.apply(to: history) }
     @State private var activeRequestID = UUID()
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -43,7 +45,15 @@ struct AnalysisHistoryView: View {
                                 description: Text("Verified analysis records will appear when the research source is connected.")
                             )
                         } else {
-                            Chart(history) { day in
+                            Picker("Observed dates", selection: $selectedRange) {
+                                ForEach(AnalysisHistoryRange.allCases) { range in
+                                    Text(range.rawValue).tag(range)
+                                }
+                            }
+                            Text("Showing \(visibleHistory.count) of \(history.count) observed dates. Missing dates are not assumed to have zero activity.")
+                                .font(.footnote)
+                                .foregroundStyle(WakColor.textSecondary)
+                            Chart(visibleHistory) { day in
                                 BarMark(
                                     x: .value("Data through", day.date),
                                     y: .value("Analysis count", day.records)
@@ -51,7 +61,7 @@ struct AnalysisHistoryView: View {
                                 .foregroundStyle(WakColor.primary)
                             }
                             .frame(height: 220)
-                            ForEach(history.reversed()) { day in
+                            ForEach(visibleHistory.reversed()) { day in
                                 VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                                     Text(day.date).font(.headline)
                                     Text("\(day.records) analyses · \(day.securities) securities")
