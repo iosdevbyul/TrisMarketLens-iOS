@@ -121,11 +121,19 @@ struct ResearchCatalogView: View {
 private struct ModelResearchDetailView: View {
     let id: String
     let source: any ResearchCatalogSource
+    @State private var loading = true
+    @State private var requesting = false
+    @State private var errorMessage: String?
     @State private var detail: ModelDetail?
 
     var body: some View {
         List {
-            if let detail {
+            if loading {
+                ProgressView("Loading detail")
+            } else if let errorMessage {
+                ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                Button("Retry") { Task { await reload() } }
+            } else if let detail {
                 Section("Model") {
                     LabeledContent("Name", value: detail.modelName)
                     LabeledContent("Direction", value: detail.direction)
@@ -148,18 +156,45 @@ private struct ModelResearchDetailView: View {
         .scrollContentBackground(.hidden)
         .background(WakColor.background)
         .navigationTitle("Model detail")
-        .task { detail = try? await source.getModel(id: id) }
+         .refreshable { await reload() }
+        .task(id: id) { await reload() }
+    }
+
+    private func reload() async {
+        guard !Task.isCancelled, !requesting else { return }
+        requesting = true
+        loading = true
+        do {
+            let response = try await source.getModel(id: id)
+            guard !Task.isCancelled else { return }
+            detail = response
+            errorMessage = nil
+        } catch {
+            guard !Task.isCancelled else { return }
+            detail = nil
+            errorMessage = ResearchErrorGuidance.message(for: error)
+        }
+        loading = false
+        requesting = false
     }
 }
 
 private struct EvidenceResearchDetailView: View {
     let id: String
     let source: any ResearchCatalogSource
+    @State private var loading = true
+    @State private var requesting = false
+    @State private var errorMessage: String?
     @State private var detail: EvidenceDetail?
 
     var body: some View {
         List {
-            if let detail {
+            if loading {
+                ProgressView("Loading detail")
+            } else if let errorMessage {
+                ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                Button("Retry") { Task { await reload() } }
+            } else if let detail {
                 Section("Research evidence") {
                     LabeledContent("State", value: detail.state.title)
                     LabeledContent("Source", value: detail.sourceLabel)
@@ -185,6 +220,25 @@ private struct EvidenceResearchDetailView: View {
         .scrollContentBackground(.hidden)
         .background(WakColor.background)
         .navigationTitle("Evidence detail")
-        .task { detail = try? await source.getEvidenceLayer(id: id) }
+         .refreshable { await reload() }
+        .task(id: id) { await reload() }
+    }
+
+    private func reload() async {
+        guard !Task.isCancelled, !requesting else { return }
+        requesting = true
+        loading = true
+        do {
+            let response = try await source.getEvidenceLayer(id: id)
+            guard !Task.isCancelled else { return }
+            detail = response
+            errorMessage = nil
+        } catch {
+            guard !Task.isCancelled else { return }
+            detail = nil
+            errorMessage = ResearchErrorGuidance.message(for: error)
+        }
+        loading = false
+        requesting = false
     }
 }

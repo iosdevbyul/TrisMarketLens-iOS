@@ -8,14 +8,14 @@ struct StockDetailView: View {
 
     @State private var detail: StockDetail?
     @State private var loading = true
-    @State private var failed = false
+    @State private var errorMessage: String?
 
     var body: some View {
         List {
             if loading {
                 ProgressView("Loading stock detail")
-            } else if failed {
-                ContentUnavailableView("Stock unavailable", systemImage: "exclamationmark.triangle")
+            } else if let errorMessage {
+                ContentUnavailableView("Stock unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
                 Button("Retry") { Task { await reload() } }
             } else if let detail {
                 Section("Stock research") {
@@ -55,11 +55,11 @@ struct StockDetailView: View {
             let response = try await source.getStock(ticker: ticker)
             guard !Task.isCancelled else { return }
             detail = response
-            failed = false
+            errorMessage = nil
         } catch {
             guard !Task.isCancelled else { return }
             detail = nil
-            failed = true
+            errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
     }
