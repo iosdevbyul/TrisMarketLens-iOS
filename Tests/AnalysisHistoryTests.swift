@@ -28,7 +28,7 @@ final class AnalysisHistoryTests: XCTestCase {
                 ticker: "001", name: nil, analysisId: "a\(index)",
                 modelId: "model", modelVersion: "v1", direction: "up",
                 score: nil, validation: "verified",
-                dataThrough: String(format: "2026-09-%02d", index),
+                dataThrough: index <= 30 ? String(format: "2026-09-%02d", index) : String(format: "2026-10-%02d", index - 30),
                 analyzedAt: "2026-10-01T00:00:00Z"
             )
         }
