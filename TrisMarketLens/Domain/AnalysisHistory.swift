@@ -69,3 +69,19 @@ struct DailyAnalysisSummary: Identifiable, Equatable {
         return summaries.sorted { $0.date < $1.date }
     }
 }
+
+enum AnalysisHistoryRange: String, CaseIterable, Identifiable {
+    case recent7 = "Last 7 dates"
+    case recent30 = "Last 30 dates"
+    case all = "All dates"
+
+    var id: String { rawValue }
+
+    func apply(to history: [DailyAnalysisSummary]) -> [DailyAnalysisSummary] {
+        switch self {
+        case .recent7: return Array(history.suffix(7))
+        case .recent30: return Array(history.suffix(30))
+        case .all: return history
+        }
+    }
+}
