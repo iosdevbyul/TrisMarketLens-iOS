@@ -148,6 +148,9 @@ private struct ModelResearchDetailView: View {
                     LabeledContent("Classification threshold", value: detail.provenance.threshold.formatted())
                 }
                 Section("Validation") {
+                    Text("Classification validation metrics, not investment returns.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
                     LabeledContent("Average precision", value: detail.validation.averagePrecision.formatted())
                     LabeledContent("Sample count", value: String(detail.validation.sampleCount))
                     LabeledContent("Precision", value: detail.validation.precision.formatted())
@@ -156,6 +159,9 @@ private struct ModelResearchDetailView: View {
                     LabeledContent("Brier score", value: detail.validation.brier.formatted())
                 }
                 Section("Out of sample") {
+                    Text("Out-of-sample metrics do not imply live trading performance.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
                     LabeledContent("Average precision", value: detail.oos.averagePrecision.formatted())
                     LabeledContent("Sample count", value: String(detail.oos.sampleCount))
                     LabeledContent("Precision", value: detail.oos.precision.formatted())
@@ -236,6 +242,10 @@ private struct EvidenceResearchDetailView: View {
                     }
                 }
                 Section("Findings") {
+                    if detail.findings.isEmpty {
+                        Text("No findings published.")
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(detail.findings, id: \.self) { finding in
                         Text(finding)
                     }
