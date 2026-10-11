@@ -24,6 +24,14 @@ jobs:
             -scheme TrisMarketLens \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+      - name: Build Release configuration for iOS Simulator
+        run: |
+          xcodebuild build \
+            -project TrisMarketLens.xcodeproj \
+            -scheme TrisMarketLens \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
       - name: Prepare iOS simulator
         id: simulator
         run: |
@@ -58,4 +66,13 @@ jobs:
             -project TrisMarketLens.xcodeproj \
             -scheme TrisMarketLens \
             -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Run Release unit tests
+        run: |
+          xcodebuild test \
+            -project TrisMarketLens.xcodeproj \
+            -scheme TrisMarketLens \
+            -configuration Release \
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
+            ENABLE_TESTABILITY=YES \
             CODE_SIGNING_ALLOWED=NO
