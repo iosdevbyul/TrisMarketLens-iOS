@@ -3,6 +3,7 @@ import WakTrainerDesignSystem
 
 struct StockAnalysisDetailView: View {
     let record: StockAnalysisRecord
+    let evaluations: [PredictionEvaluation]
 
     var body: some View {
         List {
@@ -21,6 +22,33 @@ struct StockAnalysisDetailView: View {
                     LabeledContent("Model score", value: score.formatted(.number.precision(.fractionLength(4))))
                 } else {
                     LabeledContent("Model score", value: "Not published")
+                }
+            }
+            Section("Prediction evaluation") {
+                if evaluations.isEmpty {
+                    Text("No published evaluation is available for this analysis.")
+                        .foregroundStyle(WakColor.textSecondary)
+                } else {
+                    ForEach(evaluations) { evaluation in
+                        VStack(alignment: .leading, spacing: WakSpacing.small) {
+                            LabeledContent("Evaluation ID", value: evaluation.id)
+                            LabeledContent("Verdict", value: evaluation.verdict.capitalized)
+                            LabeledContent("Horizon", value: "\(evaluation.horizonSessions) sessions")
+                            LabeledContent("Reference date", value: evaluation.referenceDate)
+                            LabeledContent("Policy", value: evaluation.policyId)
+                            if let evaluatedAt = evaluation.evaluatedAt {
+                                LabeledContent("Evaluated at", value: evaluatedAt)
+                            }
+                            if let realizedReturn = evaluation.realizedReturn {
+                                LabeledContent("Realized return", value: (realizedReturn * 100).formatted(.number.precision(.fractionLength(2))) + "%")
+                            } else {
+                                LabeledContent("Realized return", value: "Not published")
+                            }
+                            if let explanation = evaluation.explanation, !explanation.isEmpty {
+                                Text(explanation)
+                            }
+                        }
+                    }
                 }
             }
             Section("Research explanation") {
