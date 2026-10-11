@@ -23,4 +23,22 @@ final class BacktestingOperationsTests: XCTestCase {
         XCTAssertEqual(decoded.state, .blocked)
         XCTAssertFalse(decoded.performanceAvailable)
     }
+    func testRunHistoryOrdersLatestFirstAndMissingStartLast() {
+        let snapshot = OperationsSnapshot(
+            connection: "connected", checkedAt: nil,
+            latestDataThrough: nil, nextScheduledRun: nil,
+            runs: [
+                .init(id: "unknown", pipeline: "daily", state: "pending", startedAt: nil, finishedAt: nil, dataThrough: nil, summary: nil),
+                .init(id: "old", pipeline: "daily", state: "succeeded", startedAt: "2026-10-01T00:00:00Z", finishedAt: nil, dataThrough: nil, summary: nil),
+                .init(id: "b", pipeline: "daily", state: "succeeded", startedAt: "2026-10-10T00:00:00Z", finishedAt: nil, dataThrough: nil, summary: nil),
+                .init(id: "a", pipeline: "daily", state: "running", startedAt: "2026-10-10T00:00:00Z", finishedAt: nil, dataThrough: nil, summary: nil)
+            ]
+        )
+        XCTAssertEqual(snapshot.newestRunsFirst.map(\.id), ["a", "b", "old", "unknown"])
+    }
+
+    func testEmptyRunHistoryRemainsEmpty() {
+        XCTAssertTrue(OperationsSnapshot.disconnected.newestRunsFirst.isEmpty)
+    }
+
 }

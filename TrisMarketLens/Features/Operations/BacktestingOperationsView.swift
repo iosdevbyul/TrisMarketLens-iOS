@@ -235,12 +235,13 @@ struct BacktestingOperationsView: View {
                     Text("No recorded analysis runs available.")
                         .foregroundStyle(WakColor.textSecondary)
                 }
-                ForEach(operations.runs) { run in
+                ForEach(operations.newestRunsFirst) { run in
                     VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                         Text(run.pipeline).font(.headline)
                         Text("Status: \(run.state.capitalized)")
                         Text("Data through: \(run.dataThrough ?? "—")")
                         Text("Started: \(run.startedAt ?? "—")")
+                        Text("Finished: \(run.finishedAt ?? "Not published")")
                         if let summary = run.summary { Text(summary) }
                         Divider()
                     }
