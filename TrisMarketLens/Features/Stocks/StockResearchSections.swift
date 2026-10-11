@@ -135,7 +135,7 @@ struct StockResearchSections: View {
                         } else {
                             ForEach(analyses) { record in
                                 NavigationLink {
-                                    StockAnalysisDetailView(record: record)
+                                    StockAnalysisDetailView(record: record, evaluations: evaluations.filter { $0.analysisId == record.id && $0.ticker == record.ticker })
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(record.modelId).font(.headline)
