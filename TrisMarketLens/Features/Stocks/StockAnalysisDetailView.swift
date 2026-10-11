@@ -4,6 +4,7 @@ import WakTrainerDesignSystem
 struct StockAnalysisDetailView: View {
     let record: StockAnalysisRecord
     let evaluations: [PredictionEvaluation]
+    let evaluationUnavailable: Bool
 
     var body: some View {
         List {
@@ -25,7 +26,10 @@ struct StockAnalysisDetailView: View {
                 }
             }
             Section("Prediction evaluation") {
-                if evaluations.isEmpty {
+                if evaluationUnavailable {
+                    Text("Evaluation service unavailable. No evaluation status is inferred.")
+                        .foregroundStyle(WakColor.textSecondary)
+                } else if evaluations.isEmpty {
                     Text("No published evaluation is available for this analysis.")
                         .foregroundStyle(WakColor.textSecondary)
                 } else {

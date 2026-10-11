@@ -172,7 +172,7 @@ struct StockResearchSections: View {
                         } else {
                             ForEach(analyses) { record in
                                 NavigationLink {
-                                    StockAnalysisDetailView(record: record, evaluations: record.matchingEvaluations(in: evaluations))
+                                    StockAnalysisDetailView(record: record, evaluations: record.matchingEvaluations(in: evaluations), evaluationUnavailable: evaluationsLoading || evaluationsError != nil)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(record.modelId).font(.headline)
