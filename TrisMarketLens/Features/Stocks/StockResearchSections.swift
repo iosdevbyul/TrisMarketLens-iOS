@@ -80,6 +80,21 @@ struct StockResearchSections: View {
                                 }
                                 .accessibilityElement(children: .combine)
                             }
+                            if let summary = StockChartSummary(bars: selectedPeriod.filter(bars)) {
+                                VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
+                                    Text("Selected period summary")
+                                        .font(.headline)
+                                    LabeledContent("From", value: summary.firstDate)
+                                    LabeledContent("Through", value: summary.lastDate)
+                                    LabeledContent("High", value: summary.highest.formatted())
+                                    LabeledContent("Low", value: summary.lowest.formatted())
+                                    LabeledContent("Total volume", value: summary.totalVolume.formatted())
+                                    if let change = summary.changePercent {
+                                        LabeledContent("Open-to-close change", value: change.formatted(.number.precision(.fractionLength(2))) + "%")
+                                    }
+                                }
+                                .accessibilityElement(children: .combine)
+                            }
                             Text("Daily sessions: \(selectedPeriod.filter(bars).count)")
                                 .font(.caption)
                                 .foregroundStyle(WakColor.textSecondary)
