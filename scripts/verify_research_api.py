@@ -44,6 +44,9 @@ def verify(base: str, timeout: float, ticker: str | None) -> int:
     if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
         print("Invalid API base URL. Expected http(s)://host[:port] without credentials or query.", file=sys.stderr)
         return 2
+    if ticker is not None and (len(ticker) != 6 or not ticker.isascii() or not ticker.isalnum() or ticker.upper() != ticker):
+        print("Ticker must be exactly six uppercase ASCII letters/digits.", file=sys.stderr)
+        return 2
     status, health = request(base, "/api/v1/health", timeout)
     if status != "OK" or not isinstance(health, dict) or (
         health.get("status"), health.get("service"), health.get("mode")
@@ -53,9 +56,6 @@ def verify(base: str, timeout: float, ticker: str | None) -> int:
     print("Health: REACHABLE (read-only service; data publication not yet established)")
     paths = list(PATHS)
     if ticker is not None:
-        if len(ticker) != 6 or not ticker.isalnum() or ticker.upper() != ticker:
-            print("Ticker must be exactly six uppercase letters/digits.", file=sys.stderr)
-            return 2
         paths.extend((
             ("Stock detail", f"/api/v1/stocks/{ticker}", dict),
             ("OHLCV", f"/api/v1/stocks/{ticker}/ohlcv", dict),
