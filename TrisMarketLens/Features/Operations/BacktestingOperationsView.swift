@@ -18,6 +18,7 @@ struct BacktestingOperationsView: View {
     private let source: any BacktestingOperationsSource
     private let diagnostic: ResearchConnectionDiagnostic?
     @State private var connection = ResearchConnectionReport.notConfigured
+    @State private var activeRequestID = UUID()
     @State private var endpointResults: [ResearchEndpointResult] = []
     @State private var baseline: BaselineBacktestSnapshot?
     @State private var operations = OperationsSnapshot.disconnected
@@ -67,24 +68,26 @@ struct BacktestingOperationsView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled else { return }
+        let requestID = UUID()
+        activeRequestID = requestID
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         loading = true
         failed = false
         if page == .operations { await refreshConnection() }
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         do {
             switch page {
             case .backtesting:
                 let response = try await source.getBaseline()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 baseline = response
             case .operations:
                 let response = try await source.getOperations()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 operations = response
             }
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             failed = true
         }
         loading = false
@@ -132,11 +135,11 @@ struct BacktestingOperationsView: View {
 
     private func refreshConnection() async {
         let response = await diagnostic?.check() ?? .notConfigured
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         connection = response
         if let diagnostic, response.state == .reachable {
             let results = await ResearchEndpointDiagnostic(client: diagnostic.client).check()
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             endpointResults = results
         } else {
             endpointResults = []
