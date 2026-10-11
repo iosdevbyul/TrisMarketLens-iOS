@@ -85,3 +85,8 @@ The app does not boot or mutate the backend. To run a real connectivity check, c
 ### Live read-only API smoke check
 
 For an actual running DonghakStockVision server, see [A-3 verification instructions](docs/live-api-verification.md) and run `python3 scripts/verify_research_api.py --base-url <reachable-base-url>`. This checks endpoint readiness; CI does not prove a live server is reachable.
+
+
+## Release-readiness checklist (C-1)
+
+See [the release-readiness gates](docs/release-readiness.md) before treating CI success or a configured API URL as production readiness. Live connectivity, absent backend routes, device behavior, localization, and distribution checks remain manual gates until verified with evidence.
