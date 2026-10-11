@@ -60,3 +60,14 @@ extension StockAnalysisRecord {
         AnalysisEvaluationLinkage.linked(to: self, from: evaluations)
     }
 }
+
+extension StockAnalysisSnapshot {
+    var newestFirst: [StockAnalysisRecord] {
+        records.sorted {
+            if $0.analyzedAt != $1.analyzedAt {
+                return $0.analyzedAt > $1.analyzedAt
+            }
+            return $0.id < $1.id
+        }
+    }
+}
