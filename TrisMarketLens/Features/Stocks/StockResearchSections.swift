@@ -134,15 +134,20 @@ struct StockResearchSections: View {
                             emptyMessage("No verified model analysis available.")
                         } else {
                             ForEach(analyses) { record in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(record.modelId).font(.headline)
-                                    Text("\(record.direction.capitalized) · \(record.validation.capitalized) · \(record.dataThrough)")
-                                    if let score = record.score {
-                                        Text("Model score: \(score.formatted(.number.precision(.fractionLength(4))))")
+                                NavigationLink {
+                                    StockAnalysisDetailView(record: record)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(record.modelId).font(.headline)
+                                        Text("\(record.direction.capitalized) · \(record.validation.capitalized) · \(record.dataThrough)")
+                                        if let score = record.score {
+                                            Text("Model score: \(score.formatted(.number.precision(.fractionLength(4))))")
+                                        }
+                                        if let explanation = record.explanation { Text(explanation) }
                                     }
-                                    if let explanation = record.explanation { Text(explanation) }
+                                    .foregroundStyle(WakColor.textPrimary)
                                 }
-                                .foregroundStyle(WakColor.textPrimary)
+                                .buttonStyle(.plain)
                                 Divider()
                             }
                         }
