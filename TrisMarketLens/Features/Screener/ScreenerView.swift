@@ -5,6 +5,7 @@ struct ScreenerView: View {
     private let source: any ScreenerSource
     private let isConnected: Bool
     @State private var entries: [ScreenerEntry] = []
+    @State private var activeRequestID = UUID()
     @State private var filter = ScreenerFilter()
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -78,15 +79,17 @@ struct ScreenerView: View {
     }
 
     private func reload() async {
+        let requestID = UUID()
+        activeRequestID = requestID
             if Task.isCancelled { return }
             isLoading = true
             do {
                 let snapshot = try await source.getScreener()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 entries = snapshot.entries
                 errorMessage = nil
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 entries = []
                 errorMessage = ResearchErrorGuidance.message(for: error)
             }
