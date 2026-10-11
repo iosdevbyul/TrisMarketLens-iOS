@@ -17,6 +17,9 @@ struct StockAnalysisDetailView: View {
             Section("Research observation") {
                 LabeledContent("Direction", value: record.direction.capitalized)
                 LabeledContent("Validation", value: record.validation.capitalized)
+                Text(AnalysisValidationPresentation.explanation(for: record.validation))
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
                 LabeledContent("Data through", value: record.dataThrough)
                 LabeledContent("Analyzed at", value: record.analyzedAt)
                 if let score = record.score {
