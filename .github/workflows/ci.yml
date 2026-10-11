@@ -74,4 +74,5 @@ jobs:
             -scheme TrisMarketLens \
             -configuration Release \
             -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
+            ENABLE_TESTABILITY=YES \
             CODE_SIGNING_ALLOWED=NO
