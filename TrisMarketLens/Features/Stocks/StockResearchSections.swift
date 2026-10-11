@@ -38,6 +38,7 @@ struct StockResearchSections: View {
                             }
                             .pickerStyle(.segmented)
                             .accessibilityLabel("Price chart period")
+                            .onChange(of: selectedPeriod) { _, _ in selectedSession = nil }
                             Chart(selectedPeriod.filter(bars)) { bar in
                                 BarMark(
                                     x: .value("Session", bar.date),
@@ -79,7 +80,7 @@ struct StockResearchSections: View {
                                 }
                                 .accessibilityElement(children: .combine)
                             }
-                            Text("Daily sessions: \\(selectedPeriod.filter(bars).count)")
+                            Text("Daily sessions: \(selectedPeriod.filter(bars).count)")
                                 .font(.caption)
                                 .foregroundStyle(WakColor.textSecondary)
                             Chart(selectedPeriod.filter(bars)) { bar in
@@ -172,10 +173,12 @@ struct StockResearchSections: View {
             guard !Task.isCancelled else { return }
             guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
             bars = result.bars
+            selectedSession = nil
             pricesError = nil
         } catch {
             guard !Task.isCancelled else { return }
             bars = []
+            selectedSession = nil
             pricesError = ResearchErrorGuidance.message(for: error)
         }
         pricesLoading = false
