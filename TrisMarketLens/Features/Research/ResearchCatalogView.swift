@@ -147,6 +147,15 @@ private struct ModelResearchDetailView: View {
                     LabeledContent("Prediction horizon", value: "\(detail.provenance.horizonSessions) sessions")
                     LabeledContent("Classification threshold", value: detail.provenance.threshold.formatted())
                 }
+                Section("Model reproducibility") {
+                    LabeledContent("Random seed", value: detail.provenance.randomSeed.formatted())
+                    LabeledContent("Max iterations", value: detail.provenance.maxIterations.formatted())
+                    LabeledContent("Learning rate", value: detail.provenance.learningRate.formatted())
+                    LabeledContent("Min samples per leaf", value: detail.provenance.minSamplesLeaf.formatted())
+                    LabeledContent("L2 regularization", value: detail.provenance.l2Regularization.formatted())
+                    LabeledContent("Class weight", value: detail.provenance.classWeight)
+                    LabeledContent("Early stopping", value: detail.provenance.earlyStopping ? "Enabled" : "Disabled")
+                }
                 Section("Validation") {
                     Text("Classification validation metrics, not investment returns.")
                         .font(.footnote)
@@ -225,11 +234,18 @@ private struct EvidenceResearchDetailView: View {
                         LabeledContent("Fingerprint", value: "Not published")
                     }
                     Text(detail.summary)
-                    if let blocker = detail.blocker {
+                    if let blocker = detail.blocker, !blocker.isEmpty {
                         Text("Blocker: \(blocker)")
+                    } else {
+                        Text("No blocker published.")
+                            .foregroundStyle(WakColor.textSecondary)
                     }
                 }
                 Section("Metrics") {
+                    if detail.metrics.isEmpty {
+                        Text("No evidence metrics published.")
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(detail.metrics) { metric in
                         VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                             LabeledContent(metric.label, value: metric.value)
