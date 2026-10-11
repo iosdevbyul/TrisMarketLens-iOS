@@ -22,4 +22,21 @@ final class AnalysisHistoryTests: XCTestCase {
         let snapshot = try await DisconnectedScreenerSource().getScreener()
         XCTAssertTrue(DailyAnalysisSummary.summarize(snapshot.entries).isEmpty)
     }
+    func testRangeLimitsObservedDatesWithoutSynthesizingMissingDates() {
+        let entries = (1...35).map { index in
+            ScreenerEntry(
+                ticker: "001", name: nil, analysisId: "a\(index)",
+                modelId: "model", modelVersion: "v1", direction: "up",
+                score: nil, validation: "verified",
+                dataThrough: String(format: "2026-09-%02d", index),
+                analyzedAt: "2026-10-01T00:00:00Z"
+            )
+        }
+        let history = DailyAnalysisSummary.summarize(entries)
+        XCTAssertEqual(AnalysisHistoryRange.recent7.apply(to: history).count, 7)
+        XCTAssertEqual(AnalysisHistoryRange.recent30.apply(to: history).count, 30)
+        XCTAssertEqual(AnalysisHistoryRange.all.apply(to: history).count, 35)
+        XCTAssertEqual(AnalysisHistoryRange.recent7.apply(to: []).count, 0)
+    }
+
 }
