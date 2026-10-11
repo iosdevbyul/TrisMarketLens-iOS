@@ -70,3 +70,20 @@ struct OperationsSnapshot: Codable {
         runs: []
     )
 }
+
+extension OperationsSnapshot {
+    var newestRunsFirst: [AnalysisRun] {
+        runs.sorted { lhs, rhs in
+            switch (lhs.startedAt, rhs.startedAt) {
+            case let (left?, right?) where left != right:
+                return left > right
+            case (nil, .some):
+                return false
+            case (.some, nil):
+                return true
+            default:
+                return lhs.id < rhs.id
+            }
+        }
+    }
+}
