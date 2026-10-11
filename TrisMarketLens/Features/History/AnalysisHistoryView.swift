@@ -6,6 +6,7 @@ struct AnalysisHistoryView: View {
     private let source: any ScreenerSource
     private let isConnected: Bool
     @State private var history: [DailyAnalysisSummary] = []
+    @State private var activeRequestID = UUID()
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -76,16 +77,18 @@ struct AnalysisHistoryView: View {
     }
 
     private func reload() async {
+        let requestID = UUID()
+        activeRequestID = requestID
             if Task.isCancelled { return }
             isLoading = true
             do {
                 let snapshot = try await source.getScreener()
                 let result = DailyAnalysisSummary.summarize(snapshot.entries)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 history = result
                 errorMessage = nil
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 history = []
                 errorMessage = ResearchErrorGuidance.message(for: error)
             }

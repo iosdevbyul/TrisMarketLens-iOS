@@ -6,6 +6,7 @@ struct StocksView: View {
     private let isDemo: Bool
     private let researchSource: any StockResearchSource
     @State private var stocks: [StockSummary] = []
+    @State private var activeRequestID = UUID()
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
@@ -61,15 +62,17 @@ struct StocksView: View {
     }
 
     private func reload() async {
+        let requestID = UUID()
+        activeRequestID = requestID
             loading = true
             if Task.isCancelled { return }
             do {
                 let result = try await source.getStocks()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 stocks = result
                 errorMessage = nil
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 stocks = []
                 errorMessage = ResearchErrorGuidance.message(for: error)
             }

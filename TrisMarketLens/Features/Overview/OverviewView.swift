@@ -5,6 +5,7 @@ struct OverviewView: View {
     private let source: any ProjectStatusSource
     private let isDemo: Bool
     @State private var status: ProjectStatus?
+    @State private var activeRequestID = UUID()
     @State private var errorMessage: String?
 
     init(source: any ProjectStatusSource = MockProjectStatusSource(), isDemo: Bool = true) {
@@ -71,14 +72,16 @@ struct OverviewView: View {
     }
 
     private func reload() async {
+        let requestID = UUID()
+        activeRequestID = requestID
             if Task.isCancelled { return }
             do {
                 let result = try await source.getProjectStatus()
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 status = result
                 errorMessage = nil
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, activeRequestID == requestID else { return }
                 status = nil
                 errorMessage = ResearchErrorGuidance.message(for: error)
             }

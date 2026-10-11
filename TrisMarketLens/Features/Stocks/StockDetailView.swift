@@ -7,6 +7,7 @@ struct StockDetailView: View {
     var researchSource: any StockResearchSource = DisconnectedStockResearchSource()
 
     @State private var detail: StockDetail?
+    @State private var activeRequestID = UUID()
     @State private var loading = true
     @State private var errorMessage: String?
 
@@ -49,15 +50,17 @@ struct StockDetailView: View {
     }
 
     private func reload() async {
-        guard !Task.isCancelled else { return }
+        let requestID = UUID()
+        activeRequestID = requestID
+        guard !Task.isCancelled, activeRequestID == requestID else { return }
         loading = true
         do {
             let response = try await source.getStock(ticker: ticker)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             detail = response
             errorMessage = nil
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, activeRequestID == requestID else { return }
             detail = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
