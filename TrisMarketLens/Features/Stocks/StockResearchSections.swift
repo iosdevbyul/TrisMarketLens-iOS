@@ -90,6 +90,15 @@ struct StockResearchSections: View {
                                 .foregroundStyle(WakColor.primary)
                             }
                             .frame(height: 100)
+                            .chartXAxis {
+                                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                                    AxisValueLabel {
+                                        if let date = value.as(String.self) {
+                                            Text(String(date.suffix(5)))
+                                        }
+                                    }
+                                }
+                            }
                             .accessibilityLabel("Historical traded volume chart")
                             Text("Bars are displayed only when supplied by the selected research source.")
                                 .font(.footnote)
