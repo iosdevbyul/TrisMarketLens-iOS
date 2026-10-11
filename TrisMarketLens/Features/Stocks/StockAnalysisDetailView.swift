@@ -36,9 +36,19 @@ struct StockAnalysisDetailView: View {
                     ForEach(evaluations) { evaluation in
                         VStack(alignment: .leading, spacing: WakSpacing.small) {
                             LabeledContent("Evaluation ID", value: evaluation.id)
+                            LabeledContent("Linked analysis ID", value: evaluation.analysisId)
                             LabeledContent("Verdict", value: evaluation.verdict.capitalized)
                             LabeledContent("Horizon", value: "\(evaluation.horizonSessions) sessions")
                             LabeledContent("Reference date", value: evaluation.referenceDate)
+                            if let referencePrice = evaluation.referencePrice {
+                                LabeledContent("Reference price", value: referencePrice.formatted())
+                            }
+                            if let evaluationDate = evaluation.evaluationDate {
+                                LabeledContent("Evaluation date", value: evaluationDate)
+                            }
+                            if let evaluationPrice = evaluation.evaluationPrice {
+                                LabeledContent("Evaluation price", value: evaluationPrice.formatted())
+                            }
                             LabeledContent("Policy", value: evaluation.policyId)
                             if let evaluatedAt = evaluation.evaluatedAt {
                                 LabeledContent("Evaluated at", value: evaluatedAt)
