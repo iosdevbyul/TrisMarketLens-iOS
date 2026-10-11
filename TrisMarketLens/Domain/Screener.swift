@@ -32,6 +32,15 @@ struct ScreenerFilter {
     var validation = "all"
     var sort: ScreenerSort = .score
 
+    var isDefault: Bool {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        direction == "all" && validation == "all" && sort == .score
+    }
+
+    mutating func reset() {
+        self = ScreenerFilter()
+    }
+
     func apply(to entries: [ScreenerEntry]) -> [ScreenerEntry] {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let matching = entries.filter { item in

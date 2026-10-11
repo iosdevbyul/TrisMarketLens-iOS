@@ -10,6 +10,8 @@ struct ScreenerView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
+    private var filteredEntries: [ScreenerEntry] { filter.apply(to: entries) }
+
     init(source: any ScreenerSource = DisconnectedScreenerSource(), isConnected: Bool = false) {
         self.isConnected = isConnected
         self.source = source
@@ -41,16 +43,27 @@ struct ScreenerView: View {
                     }
                 }
             }
+            Section {
+                HStack {
+                    Text("\(filteredEntries.count) of \(entries.count) analyses")
+                        .foregroundStyle(WakColor.textSecondary)
+                    Spacer()
+                    if !filter.isDefault {
+                        Button("Reset filters") { filter.reset() }
+                    }
+                }
+                .font(.footnote)
+            }
             Section("Research results") {
                 if isLoading {
                     ProgressView("Loading screener")
                 } else if let errorMessage {
                     Button("Retry") { Task { await reload() } }
                     ContentUnavailableView("Screener unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
-                } else if filter.apply(to: entries).isEmpty {
-                    ContentUnavailableView("No verified analyses", systemImage: "chart.xyaxis.line", description: Text("The research API is not connected or no records match these filters."))
+                } else if filteredEntries.isEmpty {
+                    ContentUnavailableView(entries.isEmpty ? "No published analyses" : "No matching analyses", systemImage: "chart.xyaxis.line", description: Text(entries.isEmpty ? "The research source has no published screener records." : "Adjust your filters to see other published analyses."))
                 } else {
-                    ForEach(filter.apply(to: entries)) { record in
+                    ForEach(filteredEntries) { record in
                         WakCard {
                             VStack(alignment: .leading, spacing: WakSpacing.small) {
                                 Text(record.displayName).font(.headline).foregroundStyle(WakColor.textPrimary)
@@ -60,6 +73,10 @@ struct ScreenerView: View {
                                     .foregroundStyle(WakColor.textSecondary)
                                 if let score = record.score {
                                     Text("Score: \(score.formatted(.number.precision(.fractionLength(4))))")
+                                }
+                                if record.score == nil {
+                                    Text("Score: Not published")
+                                        .foregroundStyle(WakColor.textSecondary)
                                 }
                                 Text("Data through: \(record.dataThrough)")
                                     .font(.footnote).foregroundStyle(WakColor.textSecondary)

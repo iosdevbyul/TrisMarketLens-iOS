@@ -34,4 +34,24 @@ final class ScreenerTests: XCTestCase {
         let result = try await DisconnectedScreenerSource().getScreener()
         XCTAssertTrue(result.entries.isEmpty)
     }
+    func testResetRestoresDefaultFilters() {
+        var filter = ScreenerFilter()
+        XCTAssertTrue(filter.isDefault)
+        filter.query = "alpha"
+        filter.direction = "up"
+        filter.validation = "verified"
+        filter.sort = .ticker
+        XCTAssertFalse(filter.isDefault)
+        filter.reset()
+        XCTAssertTrue(filter.isDefault)
+        XCTAssertEqual(filter.apply(to: entries).count, 2)
+    }
+
+    func testWhitespaceQueryRemainsUnfiltered() {
+        var filter = ScreenerFilter()
+        filter.query = "   "
+        XCTAssertTrue(filter.isDefault)
+        XCTAssertEqual(filter.apply(to: entries).count, 2)
+    }
+
 }
