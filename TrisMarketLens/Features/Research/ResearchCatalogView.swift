@@ -143,14 +143,31 @@ private struct ModelResearchDetailView: View {
                     LabeledContent("Role", value: detail.role)
                     LabeledContent("Feature set", value: detail.provenance.featureSet)
                     LabeledContent("Artifact SHA-256", value: detail.provenance.artifactSha256)
+                    LabeledContent("Label", value: detail.provenance.label)
+                    LabeledContent("Prediction horizon", value: "\(detail.provenance.horizonSessions) sessions")
+                    LabeledContent("Classification threshold", value: detail.provenance.threshold.formatted())
                 }
                 Section("Validation") {
+                    Text("Classification validation metrics, not investment returns.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
                     LabeledContent("Average precision", value: detail.validation.averagePrecision.formatted())
                     LabeledContent("Sample count", value: String(detail.validation.sampleCount))
+                    LabeledContent("Precision", value: detail.validation.precision.formatted())
+                    LabeledContent("Recall", value: detail.validation.recall.formatted())
+                    LabeledContent("F1", value: detail.validation.f1.formatted())
+                    LabeledContent("Brier score", value: detail.validation.brier.formatted())
                 }
                 Section("Out of sample") {
+                    Text("Out-of-sample metrics do not imply live trading performance.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
                     LabeledContent("Average precision", value: detail.oos.averagePrecision.formatted())
                     LabeledContent("Sample count", value: String(detail.oos.sampleCount))
+                    LabeledContent("Precision", value: detail.oos.precision.formatted())
+                    LabeledContent("Recall", value: detail.oos.recall.formatted())
+                    LabeledContent("F1", value: detail.oos.f1.formatted())
+                    LabeledContent("Brier score", value: detail.oos.brier.formatted())
                 }
             } else {
                 ContentUnavailableView("Model detail unavailable", systemImage: "brain")
@@ -201,6 +218,12 @@ private struct EvidenceResearchDetailView: View {
                 Section("Research evidence") {
                     LabeledContent("State", value: detail.state.title)
                     LabeledContent("Source", value: detail.sourceLabel)
+                    LabeledContent("Source scope", value: detail.sourceScope)
+                    if let fingerprint = detail.fingerprint, !fingerprint.isEmpty {
+                        LabeledContent("Fingerprint", value: fingerprint)
+                    } else {
+                        LabeledContent("Fingerprint", value: "Not published")
+                    }
                     Text(detail.summary)
                     if let blocker = detail.blocker {
                         Text("Blocker: \(blocker)")
@@ -208,10 +231,21 @@ private struct EvidenceResearchDetailView: View {
                 }
                 Section("Metrics") {
                     ForEach(detail.metrics) { metric in
-                        LabeledContent(metric.label, value: metric.value)
+                        VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
+                            LabeledContent(metric.label, value: metric.value)
+                            if !metric.detail.isEmpty {
+                                Text(metric.detail)
+                                    .font(.footnote)
+                                    .foregroundStyle(WakColor.textSecondary)
+                            }
+                        }
                     }
                 }
                 Section("Findings") {
+                    if detail.findings.isEmpty {
+                        Text("No findings published.")
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(detail.findings, id: \.self) { finding in
                         Text(finding)
                     }
