@@ -10,10 +10,19 @@ struct ResearchEnvironment {
     let mode: ResearchDataMode
     let client: ResearchAPIClient?
 
+    #if DEBUG
+    private static let defaultMode = "mock"
+    #else
+    private static let defaultMode = "disconnected"
+    #endif
+
     init(values: [String: String]) throws {
-        guard let mode = ResearchDataMode(rawValue: values["TRIS_DATA_MODE"] ?? "mock") else {
+        guard let mode = ResearchDataMode(rawValue: values["TRIS_DATA_MODE"] ?? Self.defaultMode) else {
             throw ResearchEnvironmentError.unsupportedMode
         }
+        #if !DEBUG
+        guard mode != .mock else { throw ResearchEnvironmentError.unsupportedMode }
+        #endif
         self.mode = mode
         if mode == .http {
             guard let raw = values["TRIS_API_BASE_URL"], !raw.isEmpty else {
