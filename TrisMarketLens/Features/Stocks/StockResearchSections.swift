@@ -9,23 +9,24 @@ struct StockResearchSections: View {
     @State private var bars: [OhlcvBar] = []
     @State private var analyses: [StockAnalysisRecord] = []
     @State private var evaluations: [PredictionEvaluation] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
+    @State private var pricesLoading = true
+    @State private var analysisLoading = true
+    @State private var evaluationsLoading = true
+    @State private var pricesError: String?
+    @State private var analysisError: String?
+    @State private var evaluationsError: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: WakSpacing.regular) {
-            if isLoading {
-                ProgressView("Loading research")
-            } else if let errorMessage {
-                WakCard {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(WakColor.textSecondary)
-                }
-            } else {
-                WakCard {
+            WakCard {
                     VStack(alignment: .leading, spacing: WakSpacing.regular) {
                         WakSectionHeader("Price and volume")
-                        if bars.isEmpty {
+                        if pricesLoading {
+                            ProgressView("Loading prices")
+                        } else if let pricesError {
+                            Label(pricesError, systemImage: "exclamationmark.triangle")
+                            Button("Retry prices") { Task { await loadPrices() } }
+                        } else if bars.isEmpty {
                             emptyMessage("No validated OHLCV prices available.")
                         } else {
                             Chart(bars) { bar in
@@ -55,7 +56,12 @@ struct StockResearchSections: View {
                 WakCard {
                     VStack(alignment: .leading, spacing: WakSpacing.small) {
                         WakSectionHeader("AI analysis")
-                        if analyses.isEmpty {
+                        if analysisLoading {
+                            ProgressView("Loading analysis")
+                        } else if let analysisError {
+                            Label(analysisError, systemImage: "exclamationmark.triangle")
+                            Button("Retry analysis") { Task { await loadAnalysis() } }
+                        } else if analyses.isEmpty {
                             emptyMessage("No verified model analysis available.")
                         } else {
                             ForEach(analyses) { record in
@@ -76,7 +82,12 @@ struct StockResearchSections: View {
                 WakCard {
                     VStack(alignment: .leading, spacing: WakSpacing.small) {
                         WakSectionHeader("Prediction evaluation")
-                        if evaluations.isEmpty {
+                        if evaluationsLoading {
+                            ProgressView("Loading evaluations")
+                        } else if let evaluationsError {
+                            Label(evaluationsError, systemImage: "exclamationmark.triangle")
+                            Button("Retry evaluations") { Task { await loadEvaluations() } }
+                        } else if evaluations.isEmpty {
                             emptyMessage("No evaluated predictions available.")
                         } else {
                             ForEach(evaluations) { evaluation in
@@ -94,32 +105,61 @@ struct StockResearchSections: View {
                         }
                     }
                 }
-            }
         }
-        .task(id: ticker) {
-            isLoading = true
-            errorMessage = nil
-            do {
-                async let ohlcv = source.getOhlcv(ticker: ticker)
-                async let analysis = source.getAnalysis(ticker: ticker)
-                async let evaluation = source.getEvaluations(ticker: ticker)
-                let (priceResult, analysisResult, evaluationResult) = try await (ohlcv, analysis, evaluation)
-                guard priceResult.ticker == ticker,
-                      analysisResult.ticker == ticker,
-                      evaluationResult.ticker == ticker else {
-                    throw ResearchError.tickerMismatch
-                }
-                bars = priceResult.bars
-                analyses = analysisResult.records
-                evaluations = evaluationResult.evaluations
-            } catch {
-                bars = []
-                analyses = []
-                evaluations = []
-                errorMessage = "Research data unavailable. No mock fallback will be shown."
-            }
-            isLoading = false
+        .task(id: ticker) { await loadPrices() }
+        .task(id: ticker) { await loadAnalysis() }
+        .task(id: ticker) { await loadEvaluations() }
+    }
+
+    private func loadPrices() async {
+        guard !Task.isCancelled else { return }
+        pricesLoading = true
+        do {
+            let result = try await source.getOhlcv(ticker: ticker)
+            guard !Task.isCancelled else { return }
+            guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
+            bars = result.bars
+            pricesError = nil
+        } catch {
+            guard !Task.isCancelled else { return }
+            bars = []
+            pricesError = ResearchErrorGuidance.message(for: error)
         }
+        pricesLoading = false
+    }
+
+    private func loadAnalysis() async {
+        guard !Task.isCancelled else { return }
+        analysisLoading = true
+        do {
+            let result = try await source.getAnalysis(ticker: ticker)
+            guard !Task.isCancelled else { return }
+            guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
+            analyses = result.records
+            analysisError = nil
+        } catch {
+            guard !Task.isCancelled else { return }
+            analyses = []
+            analysisError = ResearchErrorGuidance.message(for: error)
+        }
+        analysisLoading = false
+    }
+
+    private func loadEvaluations() async {
+        guard !Task.isCancelled else { return }
+        evaluationsLoading = true
+        do {
+            let result = try await source.getEvaluations(ticker: ticker)
+            guard !Task.isCancelled else { return }
+            guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
+            evaluations = result.evaluations
+            evaluationsError = nil
+        } catch {
+            guard !Task.isCancelled else { return }
+            evaluations = []
+            evaluationsError = ResearchErrorGuidance.message(for: error)
+        }
+        evaluationsLoading = false
     }
 
     private func emptyMessage(_ text: String) -> some View {
