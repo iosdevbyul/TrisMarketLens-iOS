@@ -248,7 +248,7 @@ struct StockResearchSections: View {
             let result = try await source.getAnalysis(ticker: ticker)
             guard !Task.isCancelled else { return }
             guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
-            analyses = result.records
+            analyses = result.newestFirst
             analysisError = nil
         } catch {
             guard !Task.isCancelled else { return }
