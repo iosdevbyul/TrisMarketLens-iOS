@@ -115,7 +115,6 @@ struct ResearchCatalogView: View {
             failure = true
         }
         loading = false
-        requesting = false
     }
 }
 
