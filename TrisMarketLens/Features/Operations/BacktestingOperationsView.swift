@@ -154,13 +154,17 @@ struct BacktestingOperationsView: View {
                     WakSectionHeader(LocalizedStringKey(baseline.title))
                     Text(baseline.summary)
                     Text("Status: \(baseline.state.title)")
-                    Text(baseline.performanceAvailable ? "Backend reports performance available" : "No executed backtest performance")
+                    Text(baseline.performanceAvailable ? "Backend reports performance availability; no returns are inferred." : "No executed backtest performance")
                         .foregroundStyle(WakColor.textSecondary)
                 }
             }
             WakCard {
                 VStack(alignment: .leading, spacing: WakSpacing.small) {
                     WakSectionHeader("Run readiness")
+                    if baseline.readiness.isEmpty {
+                        Text("No readiness checks published.")
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(baseline.readiness) { step in
                         Text("\(step.label): \(step.state.title)")
                         Text(step.detail).font(.footnote).foregroundStyle(WakColor.textSecondary)
@@ -171,6 +175,10 @@ struct BacktestingOperationsView: View {
                 WakCard {
                     VStack(alignment: .leading, spacing: WakSpacing.small) {
                         WakSectionHeader(LocalizedStringKey(group.title))
+                        if group.rules.isEmpty {
+                            Text("No rules published for this policy group.")
+                                .foregroundStyle(WakColor.textSecondary)
+                        }
                         ForEach(group.rules) { rule in
                             LabeledContent(rule.label, value: rule.value)
                             Text(rule.detail).font(.footnote).foregroundStyle(WakColor.textSecondary)
@@ -181,10 +189,19 @@ struct BacktestingOperationsView: View {
             WakCard {
                 VStack(alignment: .leading, spacing: WakSpacing.small) {
                     WakSectionHeader("Timeline")
+                    if baseline.timeline.isEmpty {
+                        Text("No execution timeline published.")
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(baseline.timeline) { item in
                         LabeledContent(item.label, value: item.value)
+                        Text(item.detail).font(.footnote).foregroundStyle(WakColor.textSecondary)
                     }
                     WakSectionHeader("Fingerprints")
+                    if baseline.fingerprints.isEmpty {
+                        Text("No fingerprints published.")
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(baseline.fingerprints) { item in
                         LabeledContent(item.label, value: item.value)
                     }
