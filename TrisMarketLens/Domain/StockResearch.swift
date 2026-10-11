@@ -57,6 +57,6 @@ struct PredictionEvaluationSnapshot: Codable {
 
 extension StockAnalysisRecord {
     func matchingEvaluations(in evaluations: [PredictionEvaluation]) -> [PredictionEvaluation] {
-        evaluations.filter { $0.analysisId == id && $0.ticker == ticker }
+        AnalysisEvaluationLinkage.linked(to: self, from: evaluations)
     }
 }
