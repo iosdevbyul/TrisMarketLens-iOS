@@ -24,6 +24,7 @@ struct BacktestingOperationsView: View {
     @State private var operations = OperationsSnapshot.disconnected
     @State private var loading = true
     @State private var failed = false
+    @State private var errorMessage: String?
 
     init(page: Page, source: any BacktestingOperationsSource = DisconnectedBacktestingOperationsSource(), diagnostic: ResearchConnectionDiagnostic? = nil) {
         self.diagnostic = diagnostic
@@ -49,7 +50,7 @@ struct BacktestingOperationsView: View {
                 if loading {
                     ProgressView("Loading research")
                 } else if failed {
-                    ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle")
+                    ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage ?? "Unable to load research operations."))
                     Button("Retry") { Task { await reload() } }
                 } else {
                     switch page {
@@ -73,6 +74,7 @@ struct BacktestingOperationsView: View {
         guard !Task.isCancelled, activeRequestID == requestID else { return }
         loading = true
         failed = false
+        errorMessage = nil
         if page == .operations { await refreshConnection() }
         guard !Task.isCancelled, activeRequestID == requestID else { return }
         do {
@@ -89,6 +91,7 @@ struct BacktestingOperationsView: View {
         } catch {
             guard !Task.isCancelled, activeRequestID == requestID else { return }
             failed = true
+            errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
     }
@@ -220,12 +223,14 @@ struct BacktestingOperationsView: View {
         WakCard {
             VStack(alignment: .leading, spacing: WakSpacing.small) {
                 WakSectionHeader("Engine connection")
-                Text(operations.connection == "connected" ? "Connected" :
-                     operations.connection == "degraded" ? "Degraded" : "Not connected")
+                Text(OperationsStatusPresentation.connectionTitle(operations.connection))
                     .foregroundStyle(WakColor.textPrimary)
                 LabeledContent("Latest validated data", value: operations.latestDataThrough ?? "—")
                 LabeledContent("Next scheduled analysis", value: operations.nextScheduledRun ?? "—")
-                LabeledContent("Last checked", value: operations.checkedAt ?? "—")
+                LabeledContent("Last checked", value: operations.checkedAt ?? "Not published")
+                Text("Engine connection and API health do not confirm successful research runs.")
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
             }
         }
         WakCard {
@@ -238,10 +243,15 @@ struct BacktestingOperationsView: View {
                 ForEach(operations.newestRunsFirst) { run in
                     VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                         Text(run.pipeline).font(.headline)
-                        Text("Status: \(run.state.capitalized)")
+                        Text("Status: \(OperationsStatusPresentation.runStateTitle(run.state))")
                         Text("Data through: \(run.dataThrough ?? "—")")
                         Text("Started: \(run.startedAt ?? "—")")
                         Text("Finished: \(run.finishedAt ?? "Not published")")
+                        if run.finishedAt == nil {
+                            Text("Completion time was not provided; completion is not inferred.")
+                                .font(.footnote)
+                                .foregroundStyle(WakColor.textSecondary)
+                        }
                         if let summary = run.summary { Text(summary) }
                         Divider()
                     }
