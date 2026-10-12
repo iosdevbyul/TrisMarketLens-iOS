@@ -83,6 +83,19 @@ class LiveAPISmokeTests(unittest.TestCase):
                         self.assertEqual(checker.verify("https://research.test", 2, ticker), 2)
         urlopen.assert_not_called()
 
+    def test_rejects_base_path_before_network_connection(self):
+        invalid_bases = (
+            "https://research.test/api",
+            "https://research.test/api/v1/",
+            "https://research.test/other",
+        )
+        with patch.object(checker.urllib.request, "urlopen") as urlopen:
+            with patch("sys.stderr", new_callable=io.StringIO):
+                for base in invalid_bases:
+                    with self.subTest(base=base):
+                        self.assertEqual(checker.verify(base, 2, None), 2)
+        urlopen.assert_not_called()
+
     def test_rejects_untrusted_base_url_parameters(self):
         with patch("sys.stderr", new_callable=io.StringIO):
             self.assertEqual(checker.verify("https://name:pass@research.test", 2, None), 2)

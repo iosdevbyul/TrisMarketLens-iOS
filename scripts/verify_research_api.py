@@ -41,8 +41,8 @@ def request(base: str, path: str, timeout: float):
 
 def verify(base: str, timeout: float, ticker: str | None) -> int:
     parsed = urllib.parse.urlsplit(base)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
-        print("Invalid API base URL. Expected http(s)://host[:port] without credentials or query.", file=sys.stderr)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
+        print("Invalid API base URL. Expected http(s)://host[:port] without credentials, path, query or fragment.", file=sys.stderr)
         return 2
     if ticker is not None and (len(ticker) != 6 or not ticker.isascii() or not ticker.isalnum() or ticker.upper() != ticker):
         print("Ticker must be exactly six uppercase ASCII letters/digits.", file=sys.stderr)
