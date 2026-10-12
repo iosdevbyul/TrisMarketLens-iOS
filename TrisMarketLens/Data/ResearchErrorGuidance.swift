@@ -19,6 +19,7 @@ enum ResearchErrorGuidance {
             case 401: return "Research access requires authentication."
             case 403: return "Access to this research endpoint is denied."
             case 404: return "The requested research resource was not found."
+            case 503: return "Research API is reachable, but the snapshot reader or reviewed analysis publication is not configured (HTTP 503)."
             case 429: return "Too many requests. Wait before trying again."
             case 500...599: return "The research service is currently unavailable (HTTP \(code)). Try again later."
             default: return "Research request failed (HTTP \(code))."

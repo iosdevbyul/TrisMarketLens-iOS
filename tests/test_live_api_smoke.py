@@ -37,6 +37,14 @@ class LiveAPISmokeTests(unittest.TestCase):
                 data = {"status": "ok", "service": "DonghakStockVision", "mode": "read_only"}
             elif path in ("/api/v1/stocks", "/api/v1/models", "/api/v1/evidence"):
                 data = []
+            elif path == "/api/v1/project/status":
+                data = {"productName": "Research", "sourceLabel": "source", "metrics": [], "evidence": [], "baseline": []}
+            elif path == "/api/v1/analysis/screener":
+                data = {"entries": []}
+            elif path.endswith("/ohlcv"):
+                data = {"ticker": "005930", "bars": []}
+            elif path.endswith("/analysis"):
+                data = {"ticker": "005930", "records": []}
             else:
                 data = {}
             return FakeResponse(json.dumps(data).encode())
@@ -45,6 +53,18 @@ class LiveAPISmokeTests(unittest.TestCase):
             with patch("sys.stdout", new_callable=io.StringIO) as output:
                 self.assertEqual(checker.verify("https://research.test", 2, "005930"), 0)
                 self.assertIn("Health: REACHABLE", output.getvalue())
+
+
+    def test_missing_required_keys_fail_contract(self):
+        def urlopen(request, timeout):
+            if request.full_url.endswith("/health"):
+                return FakeResponse(b'{"status":"ok","service":"DonghakStockVision","mode":"read_only"}')
+            return FakeResponse(b'{}')
+
+        with patch.object(checker.urllib.request, "urlopen", side_effect=urlopen):
+            with patch("sys.stdout", new_callable=io.StringIO) as output:
+                self.assertEqual(checker.verify("https://research.test", 2, "005930"), 1)
+                self.assertIn("Missing fields:", output.getvalue())
 
     def test_503_reader_is_not_success(self):
         def urlopen(request, timeout):

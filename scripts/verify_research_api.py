@@ -7,6 +7,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+REQUIRED_FIELDS = {
+    "/api/v1/project/status": {"productName", "sourceLabel", "metrics", "evidence", "baseline"},
+    "/api/v1/analysis/screener": {"entries"},
+    "/api/v1/stocks/{ticker}/ohlcv": {"ticker", "bars"},
+    "/api/v1/stocks/{ticker}/analysis": {"ticker", "records"},
+}
+
 PATHS = (
     ("Project status", "/api/v1/project/status", dict),
     ("Stocks", "/api/v1/stocks", list),
@@ -68,11 +75,18 @@ def verify(base: str, timeout: float, ticker: str | None) -> int:
             if not isinstance(result, expected):
                 state, result = "INCOMPATIBLE", f"Expected {expected.__name__} JSON"
             else:
-                result = "JSON shape checked; domain validation still required"
+                canonical = path.replace(ticker, "{ticker}") if ticker else path
+                required = REQUIRED_FIELDS.get(canonical, set())
+                missing = required.difference(result) if isinstance(result, dict) else set()
+                if missing:
+                    state, result = "INCOMPATIBLE", "Missing fields: " + ", ".join(sorted(missing))
+                else:
+                    result = "Top-level JSON shape checked; nested domain validation still required"
         if state != "OK":
             failures += 1
         print(f"{label:16} {state:16} {path} — {result}")
-    print("Known backend-unimplemented endpoints: /api/v1/operations, /api/v1/stocks/{ticker}/evaluations")
+    print("UNSUPPORTED /api/v1/operations (not a registered backend route)")
+    print("UNSUPPORTED /api/v1/stocks/{ticker}/evaluations (not a registered backend route)")
     print("HTTP and top-level JSON checks do not establish published research integrity.")
     return 0 if failures == 0 else 1
 
