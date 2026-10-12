@@ -74,6 +74,15 @@ class LiveAPISmokeTests(unittest.TestCase):
             state, _ = checker.request("https://research.test", "/api/v1/health", 2)
         self.assertEqual(state, "INCOMPATIBLE")
 
+    def test_invalid_ticker_is_rejected_before_any_network_request(self):
+        invalid = ("../etc", "abc", "ABC/12", "한글1234", "abc123", "ＡＢＣ１２３")
+        with patch.object(checker.urllib.request, "urlopen") as urlopen:
+            with patch("sys.stderr", new_callable=io.StringIO):
+                for ticker in invalid:
+                    with self.subTest(ticker=ticker):
+                        self.assertEqual(checker.verify("https://research.test", 2, ticker), 2)
+        urlopen.assert_not_called()
+
     def test_rejects_untrusted_base_url_parameters(self):
         with patch("sys.stderr", new_callable=io.StringIO):
             self.assertEqual(checker.verify("https://name:pass@research.test", 2, None), 2)
