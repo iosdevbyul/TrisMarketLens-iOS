@@ -64,7 +64,11 @@ struct ResearchAPIClient {
             case .decodingFailed: throw ResearchAPIError.invalidPayload
             case .invalidResponse: throw ResearchAPIError.invalidResponse
             case .invalidURL: throw ResearchAPIError.invalidConfiguration
-            case .unknown: throw ResearchAPIError.transport
+            case .unknown(let underlying):
+                #if DEBUG
+                print("[ResearchAPI] Transport error for \(endpoint.path): \(String(reflecting: underlying))")
+                #endif
+                throw ResearchAPIError.transport
             }
         } catch {
             throw ResearchAPIError.transport
