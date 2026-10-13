@@ -23,19 +23,17 @@ struct StockResearchSections: View {
     private var displayMode: StockChartDisplayMode { .mode(sessionCount: visibleBars.count) }
 
     private var dateRangeLabels: some View {
-        HStack {
-            if let first = visibleBars.first {
-                Text(first.date)
-            }
-            Spacer(minLength: 8)
-            if let last = visibleBars.last, last.date != visibleBars.first?.date {
-                Text(last.date)
+        let dates = StockChartAxisLabels.dates(for: visibleBars.map { $0.date }, maxLabels: 4)
+        return HStack(spacing: 2) {
+            ForEach(Array(dates.enumerated()), id: \.offset) { item in
+                Text(String(item.element.suffix(5)))
+                    .frame(maxWidth: .infinity, alignment: item.offset == 0 ? .leading : item.offset == dates.count - 1 ? .trailing : .center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
         .font(.caption2)
         .foregroundStyle(WakColor.textSecondary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
         .padding(.trailing, 54)
         .accessibilityLabel("Visible dates from \(visibleBars.first?.date ?? "unknown") to \(visibleBars.last?.date ?? "unknown")")
     }
