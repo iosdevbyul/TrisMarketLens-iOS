@@ -2,6 +2,7 @@
 """Read-only live API smoke check. No credentials, mutations, or fake success."""
 import argparse
 import json
+import math
 import sys
 import urllib.error
 import urllib.parse
@@ -46,6 +47,33 @@ def request(base: str, path: str, timeout: float):
         return "UNAVAILABLE", type(error).__name__
 
 
+
+def validate_ohlcv(payload: dict, ticker: str):
+    """Check only structural OHLCV invariants; do not certify source integrity."""
+    if payload.get("ticker") != ticker or not isinstance(payload.get("bars"), list):
+        return "Ticker mismatch or bars is not a list"
+    seen = set()
+    for index, bar in enumerate(payload["bars"]):
+        if not isinstance(bar, dict):
+            return f"Bar {index} is not an object"
+        required = ("date", "open", "high", "low", "close", "volume")
+        if any(key not in bar for key in required):
+            return f"Bar {index} missing OHLCV fields"
+        if not isinstance(bar["date"], str) or not bar["date"]:
+            return f"Bar {index} has invalid date"
+        if bar["date"] in seen:
+            return f"Bar {index} repeats date"
+        seen.add(bar["date"])
+        values = [bar[key] for key in ("open", "high", "low", "close")]
+        if any(type(value) not in (int, float) or not __import__("math").isfinite(value) or value < 0 for value in values):
+            return f"Bar {index} has invalid price"
+        opening, high, low, closing = values
+        if low > min(opening, closing) or high < max(opening, closing) or high < low:
+            return f"Bar {index} violates OHLC bounds"
+        if type(bar["volume"]) is not int or bar["volume"] < 0:
+            return f"Bar {index} has invalid volume"
+    return None
+
 def verify(base: str, timeout: float, ticker: str | None) -> int:
     parsed = urllib.parse.urlsplit(base)
     if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
@@ -80,8 +108,10 @@ def verify(base: str, timeout: float, ticker: str | None) -> int:
                 missing = required.difference(result) if isinstance(result, dict) else set()
                 if missing:
                     state, result = "INCOMPATIBLE", "Missing fields: " + ", ".join(sorted(missing))
+                elif ticker and canonical == "/api/v1/stocks/{ticker}/ohlcv" and (issue := validate_ohlcv(result, ticker)):
+                    state, result = "INCOMPATIBLE", issue
                 else:
-                    result = "Top-level JSON shape checked; nested domain validation still required"
+                    result = "JSON contract checked; source integrity still requires independent verification"
         if state != "OK":
             failures += 1
         print(f"{label:16} {state:16} {path} — {result}")
