@@ -35,9 +35,6 @@ struct BacktestingOperationsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: WakSpacing.regular) {
-                Text(page.title)
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(WakColor.textPrimary)
                 Label(diagnostic == nil ? "Research API not connected" : "Research API configured", systemImage: "info.circle")
                     .font(.footnote)
                     .foregroundStyle(WakColor.textSecondary)
@@ -65,13 +62,13 @@ struct BacktestingOperationsView: View {
         .background(WakColor.background)
         .navigationTitle(page.title)
         .refreshable { await reload() }
-        .task { await reload() }
+        .onAppear { Task { await reload() } }
     }
 
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeRequestID == requestID else { return }
         loading = true
         failed = false
         errorMessage = nil
