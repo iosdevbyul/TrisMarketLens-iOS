@@ -62,20 +62,27 @@ struct StocksView: View {
     }
 
     private func reload() async {
+        guard !Task.isCancelled else { return }
         let requestID = UUID()
         activeRequestID = requestID
-            loading = true
-            if Task.isCancelled { return }
-            do {
+        loading = true
+        errorMessage = nil
+        do {
                 let result = try await source.getStocks()
                 guard !Task.isCancelled, activeRequestID == requestID else { return }
                 stocks = result
                 errorMessage = nil
+                #if DEBUG
+                print("[Stocks] Loaded \(result.count) published stocks")
+                #endif
             } catch {
                 guard !Task.isCancelled, activeRequestID == requestID else { return }
                 stocks = []
                 errorMessage = ResearchErrorGuidance.message(for: error)
-            }
-            loading = false
+                #if DEBUG
+                print("[Stocks] Request failed: \(String(reflecting: error))")
+                #endif
+        }
+        loading = false
     }
 }
