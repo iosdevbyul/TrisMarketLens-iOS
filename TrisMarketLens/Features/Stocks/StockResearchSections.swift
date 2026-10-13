@@ -22,7 +22,23 @@ struct StockResearchSections: View {
 
     private var displayMode: StockChartDisplayMode { .mode(sessionCount: visibleBars.count) }
 
-    private var dateAxisLabels: [String] { StockChartAxisLabels.dates(for: visibleBars.map { $0.date }) }
+    private var dateRangeLabels: some View {
+        HStack {
+            if let first = visibleBars.first {
+                Text(first.date)
+            }
+            Spacer(minLength: 8)
+            if let last = visibleBars.last, last.date != visibleBars.first?.date {
+                Text(last.date)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(WakColor.textSecondary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .padding(.trailing, 54)
+        .accessibilityLabel("Visible dates from \(visibleBars.first?.date ?? "unknown") to \(visibleBars.last?.date ?? "unknown")")
+    }
 
     private var selectedBar: OhlcvBar? {
         StockChartSelection.bar(for: selectedSession, in: visibleBars)
@@ -71,7 +87,7 @@ struct StockResearchSections: View {
                                             x: .value("Session", bar.date),
                                             yStart: .value("Body low", min(bar.open, bar.close)),
                                             yEnd: .value("Body high", max(bar.open, bar.close)),
-                                            width: 6
+                                            width: .fixed(StockChartCandleWidth.bodyWidth(for: visibleBars.count))
                                         )
                                         .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
                                     }
@@ -83,18 +99,9 @@ struct StockResearchSections: View {
                                 }
                             }
                             .chartXSelection(value: $selectedSession)
-                            .chartXAxis {
-                                AxisMarks(values: dateAxisLabels) { value in
-                                    AxisTick()
-                                    AxisGridLine()
-                                    AxisValueLabel {
-                                        if let date = value.as(String.self) {
-                                            Text(String(date.suffix(5)))
-                                        }
-                                    }
-                                }
-                            }
+                            .chartXAxis(.hidden)
                             .frame(height: 220)
+                            dateRangeLabels
                             .accessibilityLabel(displayMode == .closingLine ? "Historical closing price chart" : "Historical OHLCV chart")
                             if displayMode == .closingLine {
                                 Text("Showing closing prices as a line for readability across longer periods.")
@@ -155,15 +162,8 @@ struct StockResearchSections: View {
                                     }
                                 }
                             }
-                            .chartXAxis {
-                                AxisMarks(values: dateAxisLabels) { value in
-                                    AxisValueLabel {
-                                        if let date = value.as(String.self) {
-                                            Text(String(date.suffix(5)))
-                                        }
-                                    }
-                                }
-                            }
+                            .chartXAxis(.hidden)
+                            dateRangeLabels
                             .accessibilityLabel("Historical traded volume chart")
                             Text("Bars are displayed only when supplied by the selected research source.")
                                 .font(.footnote)
