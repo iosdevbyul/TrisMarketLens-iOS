@@ -87,7 +87,7 @@ struct StockResearchSections: View {
                                             x: .value("Session", bar.date),
                                             yStart: .value("Body low", min(bar.open, bar.close)),
                                             yEnd: .value("Body high", max(bar.open, bar.close)),
-                                            width: StockChartCandleWidth.bodyWidth(for: visibleBars.count)
+                                            width: .fixed(StockChartCandleWidth.bodyWidth(for: visibleBars.count))
                                         )
                                         .foregroundStyle(bar.close >= bar.open ? Color.green : WakColor.destructive)
                                     }
