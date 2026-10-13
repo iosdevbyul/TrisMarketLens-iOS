@@ -25,9 +25,9 @@ struct StockResearchSections: View {
     private var dateRangeLabels: some View {
         let dates = StockChartAxisLabels.dates(for: visibleBars.map { $0.date }, maxLabels: 4)
         return HStack(spacing: 2) {
-            ForEach(Array(dates.enumerated()), id: \.offset) { index, date in
-                Text(String(date.suffix(5)))
-                    .frame(maxWidth: .infinity, alignment: index == 0 ? .leading : index == dates.count - 1 ? .trailing : .center)
+            ForEach(Array(dates.enumerated()), id: \.offset) { item in
+                Text(String(item.element.suffix(5)))
+                    .frame(maxWidth: .infinity, alignment: item.offset == 0 ? .leading : item.offset == dates.count - 1 ? .trailing : .center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -35,7 +35,7 @@ struct StockResearchSections: View {
         .font(.caption2)
         .foregroundStyle(WakColor.textSecondary)
         .padding(.trailing, 54)
-        .accessibilityLabel("Visible dates from \\(visibleBars.first?.date ?? "unknown") to \\(visibleBars.last?.date ?? "unknown")")
+        .accessibilityLabel("Visible dates from \(visibleBars.first?.date ?? "unknown") to \(visibleBars.last?.date ?? "unknown")")
     }
 
     private var selectedBar: OhlcvBar? {
