@@ -29,9 +29,6 @@ struct ResearchCatalogView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: WakSpacing.regular) {
-                Text(kind.title)
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(WakColor.textPrimary)
                 Text(kind == .models
                      ? "Research classification metrics, not backtest returns."
                      : "Evidence status is supplied by research; no client-side verification is inferred.")
@@ -91,13 +88,13 @@ struct ResearchCatalogView: View {
         .background(WakColor.background)
         .navigationTitle(kind.title)
         .refreshable { await reload() }
-        .task { await reload() }
+        .onAppear { Task { await reload() } }
     }
 
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeRequestID == requestID else { return }
         loading = true
         failure = false
         do {
