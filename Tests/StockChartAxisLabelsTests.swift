@@ -21,6 +21,16 @@ final class StockChartAxisLabelsTests: XCTestCase {
         XCTAssertEqual(labels, ["session-00", "session-16", "session-32", "session-48", "session-65"])
     }
 
+    func testFourDateLabelsForEachMainPeriod() {
+        for count in [22, 66, 252, 1160] {
+            let dates = (0..<count).map { String(format: "2026-%04d", $0) }
+            let labels = StockChartAxisLabels.dates(for: dates, maxLabels: 4)
+            XCTAssertEqual(labels.count, 4)
+            XCTAssertEqual(labels.first, dates.first)
+            XCTAssertEqual(labels.last, dates.last)
+        }
+    }
+
     func testZeroAndSingleLabelLimits() {
         XCTAssertEqual(StockChartAxisLabels.dates(for: ["a", "b"], maxLabels: 0), [])
         XCTAssertEqual(StockChartAxisLabels.dates(for: ["a", "b"], maxLabels: 1), ["a"])
