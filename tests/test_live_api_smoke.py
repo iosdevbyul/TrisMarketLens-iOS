@@ -66,6 +66,46 @@ class LiveAPISmokeTests(unittest.TestCase):
                 self.assertEqual(checker.verify("https://research.test", 2, "005930"), 1)
                 self.assertIn("Missing fields:", output.getvalue())
 
+    def test_ohlcv_validates_prices_and_volume_without_fabricating_data(self):
+        good = {"ticker": "005930", "bars": [
+            {"date": "2026-10-12", "open": 100, "high": 105, "low": 95, "close": 102, "volume": 200}
+        ]}
+        self.assertIsNone(checker.validate_ohlcv(good, "005930"))
+        variants = [
+            {**good, "ticker": "000660"},
+            {**good, "bars": [{}]},
+            {**good, "bars": [dict(good["bars"][0], high=99)]},
+            {**good, "bars": [dict(good["bars"][0], volume=-1)]},
+            {**good, "bars": [dict(good["bars"][0], close=float("nan"))]},
+            {**good, "bars": good["bars"] * 2},
+        ]
+        for payload in variants:
+            with self.subTest(payload=repr(payload)):
+                self.assertIsNotNone(checker.validate_ohlcv(payload, "005930"))
+
+    def test_ohlcv_invalid_nested_data_causes_failed_smoke_check(self):
+        def urlopen(request, timeout):
+            path = request.full_url.split(".test", 1)[-1]
+            if path == "/api/v1/health":
+                data = {"status": "ok", "service": "DonghakStockVision", "mode": "read_only"}
+            elif path == "/api/v1/project/status":
+                data = {"productName": "Research", "sourceLabel": "source", "metrics": [], "evidence": [], "baseline": []}
+            elif path == "/api/v1/analysis/screener":
+                data = {"entries": []}
+            elif path.endswith("/ohlcv"):
+                data = {"ticker": "005930", "bars": [{"date": "2026-10-12"}]}
+            elif path.endswith("/analysis"):
+                data = {"ticker": "005930", "records": []}
+            elif path in ("/api/v1/stocks", "/api/v1/models", "/api/v1/evidence"):
+                data = []
+            else:
+                data = {}
+            return FakeResponse(json.dumps(data).encode())
+        with patch.object(checker.urllib.request, "urlopen", side_effect=urlopen):
+            with patch("sys.stdout", new_callable=io.StringIO) as output:
+                self.assertEqual(checker.verify("https://research.test", 2, "005930"), 1)
+                self.assertIn("missing OHLCV fields", output.getvalue())
+
     def test_503_reader_is_not_success(self):
         def urlopen(request, timeout):
             if request.full_url.endswith("/health"):
