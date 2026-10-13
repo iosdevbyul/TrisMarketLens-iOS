@@ -10,6 +10,7 @@ struct StocksView: View {
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
+    @State private var requestStatus = "Waiting for request"
 
     init(source: any StockSource = MockStockSource(), isDemo: Bool = true, researchSource: any StockResearchSource = DisconnectedStockResearchSource()) {
         self.researchSource = researchSource
@@ -29,7 +30,15 @@ struct StocksView: View {
                     .font(.footnote)
             }
             if loading {
-                ProgressView("Loading stocks")
+                VStack(alignment: .leading, spacing: WakSpacing.small) {
+                    ProgressView("Loading stocks")
+                    #if DEBUG
+                    Text(requestStatus)
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
+                    #endif
+                    Button("Retry loading") { Task { await reload() } }
+                }
             } else if let errorMessage {
                 Button("Retry") { Task { await reload() } }
                 ContentUnavailableView("Stocks unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
@@ -61,27 +70,40 @@ struct StocksView: View {
         .task { await reload() }
     }
 
+    @MainActor
     private func reload() async {
-        guard !Task.isCancelled else { return }
         let requestID = UUID()
         activeRequestID = requestID
         loading = true
         errorMessage = nil
+        requestStatus = "Request started"
+
         do {
-                let result = try await source.getStocks()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                stocks = result
-                errorMessage = nil
-                #if DEBUG
-                print("[Stocks] Loaded \(result.count) published stocks")
-                #endif
-            } catch {
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                stocks = []
-                errorMessage = ResearchErrorGuidance.message(for: error)
-                #if DEBUG
-                print("[Stocks] Request failed: \(String(reflecting: error))")
-                #endif
+            let result = try await source.getStocks()
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                requestStatus = "Request canceled"
+                loading = false
+                return
+            }
+            stocks = result
+            requestStatus = "Loaded \\(result.count) stocks"
+            #if DEBUG
+            print("[Stocks] Loaded \\(result.count) published stocks")
+            #endif
+        } catch {
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                requestStatus = "Request canceled"
+                loading = false
+                return
+            }
+            stocks = []
+            errorMessage = ResearchErrorGuidance.message(for: error)
+            requestStatus = "Request failed: \\(String(describing: error))"
+            #if DEBUG
+            print("[Stocks] Request failed: \\(String(reflecting: error))")
+            #endif
         }
         loading = false
     }
