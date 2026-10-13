@@ -20,6 +20,7 @@ struct ResearchCatalogView: View {
     @State private var layers: [EvidenceLayerSummary] = []
     @State private var loading = true
     @State private var failure = false
+    @State private var errorMessage: String?
 
     init(kind: SectionKind, source: any ResearchCatalogSource = DisconnectedResearchCatalogSource()) {
         self.kind = kind
@@ -37,7 +38,7 @@ struct ResearchCatalogView: View {
                 if loading {
                     ProgressView("Loading research")
                 } else if failure {
-                    ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle")
+                    ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage ?? "Unable to load research."))
                     Button("Retry") { Task { await reload() } }
                 } else if kind == .models {
                     if models.isEmpty {
@@ -97,6 +98,7 @@ struct ResearchCatalogView: View {
         guard activeRequestID == requestID else { return }
         loading = true
         failure = false
+        errorMessage = nil
         do {
             switch kind {
             case .models:
@@ -113,6 +115,7 @@ struct ResearchCatalogView: View {
             models = []
             layers = []
             failure = true
+            errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
     }
