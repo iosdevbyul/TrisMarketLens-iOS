@@ -22,6 +22,8 @@ struct StockResearchSections: View {
 
     private var displayMode: StockChartDisplayMode { .mode(sessionCount: visibleBars.count) }
 
+    private var dateAxisLabels: [String] { StockChartAxisLabels.dates(for: visibleBars.map { $0.date }) }
+
     private var selectedBar: OhlcvBar? {
         StockChartSelection.bar(for: selectedSession, in: visibleBars)
     }
@@ -82,7 +84,7 @@ struct StockResearchSections: View {
                             }
                             .chartXSelection(value: $selectedSession)
                             .chartXAxis {
-                                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                                AxisMarks(values: dateAxisLabels) { value in
                                     AxisTick()
                                     AxisGridLine()
                                     AxisValueLabel {
@@ -143,8 +145,18 @@ struct StockResearchSections: View {
                                 }
                             }
                             .frame(height: 100)
+                            .chartYAxis {
+                                AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
+                                    AxisGridLine()
+                                    AxisValueLabel {
+                                        if let volume = value.as(Double.self) {
+                                            Text(volume.formatted(.number.notation(.compactName)))
+                                        }
+                                    }
+                                }
+                            }
                             .chartXAxis {
-                                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                                AxisMarks(values: dateAxisLabels) { value in
                                     AxisValueLabel {
                                         if let date = value.as(String.self) {
                                             Text(String(date.suffix(5)))
@@ -270,7 +282,11 @@ struct StockResearchSections: View {
         } catch {
             guard !Task.isCancelled else { return }
             evaluations = []
-            evaluationsError = ResearchErrorGuidance.message(for: error)
+            if case ResearchAPIError.httpStatus(404) = error {
+                evaluationsError = "Prediction evaluation API is not supported by this server (HTTP 404)."
+            } else {
+                evaluationsError = ResearchErrorGuidance.message(for: error)
+            }
         }
         evaluationsLoading = false
     }
