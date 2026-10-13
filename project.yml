@@ -48,6 +48,11 @@ schemes:
     build:
       targets:
         TrisMarketLens: all
+    run:
+      config: Debug
+      environmentVariables:
+        TRIS_DATA_MODE: http
+        TRIS_API_BASE_URL: http://127.0.0.1:8000
     test:
       targets:
         - TrisMarketLensTests
