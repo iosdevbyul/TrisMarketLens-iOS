@@ -97,6 +97,16 @@ struct StockResearchSections: View {
                                     RuleMark(x: .value("Selected session", selectedBar.date))
                                         .foregroundStyle(WakColor.textSecondary)
                                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                                        .annotation(position: .top, spacing: 6) {
+                                            Text(selectedBar.date)
+                                                .font(.caption.bold())
+                                                .monospacedDigit()
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 5)
+                                                .background(.black.opacity(0.85), in: Capsule())
+                                                .accessibilityLabel("Selected trading date: \(selectedBar.date)")
+                                        }
                                 }
                             }
                             .chartXSelection(value: $selectedSession)
