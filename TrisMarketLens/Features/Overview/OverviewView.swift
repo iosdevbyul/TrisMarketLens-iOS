@@ -74,17 +74,23 @@ struct OverviewView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-            if Task.isCancelled { return }
-            do {
-                let result = try await source.getProjectStatus()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                status = result
-                errorMessage = nil
-            } catch {
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                status = nil
-                errorMessage = ResearchErrorGuidance.message(for: error)
+        guard !Task.isCancelled else { return }
+        do {
+            let result = try await source.getProjectStatus()
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                return
             }
+            status = result
+            errorMessage = nil
+        } catch {
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                return
+            }
+            status = nil
+            errorMessage = ResearchErrorGuidance.message(for: error)
+        }
     }
 
     private func checkpointSection(_ title: String, items: [ResearchCheckpoint]) -> some View {
