@@ -24,6 +24,7 @@ struct BacktestingOperationsView: View {
     @State private var operations = OperationsSnapshot.disconnected
     @State private var loading = true
     @State private var failed = false
+    @State private var operationsHistoryMissing = false
     @State private var errorMessage: String?
 
     init(page: Page, source: any BacktestingOperationsSource = DisconnectedBacktestingOperationsSource(), diagnostic: ResearchConnectionDiagnostic? = nil) {
@@ -45,6 +46,8 @@ struct BacktestingOperationsView: View {
 
                 if loading {
                     ProgressView("Loading research")
+                } else if page == .operations && operationsHistoryMissing {
+                    operationsHistoryUnavailableContent
                 } else if failed {
                     ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage ?? "Unable to load research operations."))
                     Button("Retry") { Task { await reload() } }
@@ -70,6 +73,7 @@ struct BacktestingOperationsView: View {
         guard activeRequestID == requestID else { return }
         loading = true
         failed = false
+        operationsHistoryMissing = false
         errorMessage = nil
         if page == .operations { await refreshConnection() }
         guard !Task.isCancelled, activeRequestID == requestID else { return }
@@ -86,10 +90,27 @@ struct BacktestingOperationsView: View {
             }
         } catch {
             guard !Task.isCancelled, activeRequestID == requestID else { return }
-            failed = true
-            errorMessage = ResearchErrorGuidance.message(for: error)
+            if page == .operations, case ResearchAPIError.httpStatus(404) = error {
+                operationsHistoryMissing = true
+            } else {
+                failed = true
+                errorMessage = ResearchErrorGuidance.message(for: error)
+            }
         }
         loading = false
+    }
+
+    private var operationsHistoryUnavailableContent: some View {
+        WakCard {
+            VStack(alignment: .leading, spacing: WakSpacing.small) {
+                WakSectionHeader("Operations history unavailable")
+                Text("This server does not provide the operations history endpoint (HTTP 404).")
+                    .foregroundStyle(WakColor.textSecondary)
+                Text("Health and other research endpoints remain independently available. No analysis run history or freshness data is inferred.")
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
+            }
+        }
     }
 
     private var connectionContent: some View {
