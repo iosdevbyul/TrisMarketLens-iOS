@@ -19,6 +19,7 @@ struct BacktestingOperationsView: View {
     private let diagnostic: ResearchConnectionDiagnostic?
     @State private var connection = ResearchConnectionReport.notConfigured
     @State private var activeRequestID = UUID()
+    @State private var activeDiagnosticID = UUID()
     @State private var endpointResults: [ResearchEndpointResult] = []
     @State private var baseline: BaselineBacktestSnapshot?
     @State private var operations = OperationsSnapshot.disconnected
@@ -70,26 +71,42 @@ struct BacktestingOperationsView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard activeRequestID == requestID else { return }
+        guard !Task.isCancelled else { return }
         loading = true
         failed = false
         operationsHistoryMissing = false
         errorMessage = nil
         if page == .operations { await refreshConnection() }
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeRequestID == requestID else { return }
+        if Task.isCancelled {
+            loading = false
+            return
+        }
         do {
             switch page {
             case .backtesting:
                 let response = try await source.getBaseline()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
+                guard activeRequestID == requestID else { return }
+                if Task.isCancelled {
+                    loading = false
+                    return
+                }
                 baseline = response
             case .operations:
                 let response = try await source.getOperations()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
+                guard activeRequestID == requestID else { return }
+                if Task.isCancelled {
+                    loading = false
+                    return
+                }
                 operations = response
             }
         } catch {
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             if page == .operations, case ResearchAPIError.httpStatus(404) = error {
                 operationsHistoryMissing = true
             } else {
@@ -154,16 +171,17 @@ struct BacktestingOperationsView: View {
     }
 
     private func refreshConnection() async {
-        let requestID = activeRequestID
+        let diagnosticID = UUID()
+        activeDiagnosticID = diagnosticID
+        guard !Task.isCancelled else { return }
         let response = await diagnostic?.check() ?? .notConfigured
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeDiagnosticID == diagnosticID, !Task.isCancelled else { return }
         connection = response
+        endpointResults = []
         if let diagnostic, response.state == .reachable {
             let results = await ResearchEndpointDiagnostic(client: diagnostic.client).check()
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeDiagnosticID == diagnosticID, !Task.isCancelled else { return }
             endpointResults = results
-        } else {
-            endpointResults = []
         }
     }
 
