@@ -103,15 +103,27 @@ struct ResearchCatalogView: View {
             switch kind {
             case .models:
                 let response = try await source.getModels()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
+                guard activeRequestID == requestID else { return }
+                if Task.isCancelled {
+                    loading = false
+                    return
+                }
                 models = response
             case .evidence:
                 let response = try await source.getEvidenceLayers()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
+                guard activeRequestID == requestID else { return }
+                if Task.isCancelled {
+                    loading = false
+                    return
+                }
                 layers = response
             }
         } catch {
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+                if Task.isCancelled {
+                    loading = false
+                    return
+                }
             models = []
             layers = []
             failure = true
@@ -192,15 +204,27 @@ private struct ModelResearchDetailView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
         loading = true
         do {
             let response = try await source.getModel(id: id)
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             detail = response
             errorMessage = nil
         } catch {
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             detail = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
@@ -280,15 +304,27 @@ private struct EvidenceResearchDetailView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
         loading = true
         do {
             let response = try await source.getEvidenceLayer(id: id)
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             detail = response
             errorMessage = nil
         } catch {
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             detail = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
