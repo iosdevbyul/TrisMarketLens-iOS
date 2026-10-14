@@ -66,6 +66,28 @@ struct StockResearchSections: View {
                             .pickerStyle(.segmented)
                             .accessibilityLabel("Price chart period")
                             .onChange(of: selectedPeriod) { _, _ in selectedSession = nil }
+                            if let session = selectedBar {
+                                HStack(alignment: .firstTextBaseline) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Selected trading session")
+                                            .font(.caption)
+                                            .foregroundStyle(WakColor.textSecondary)
+                                        Text(session.date)
+                                            .font(.headline)
+                                            .monospacedDigit()
+                                    }
+                                    Spacer(minLength: 8)
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("Close")
+                                            .font(.caption)
+                                            .foregroundStyle(WakColor.textSecondary)
+                                        Text(session.close.formatted())
+                                            .font(.headline)
+                                            .monospacedDigit()
+                                    }
+                                }
+                                .accessibilityElement(children: .combine)
+                            }
                             Chart {
                                 if displayMode == .closingLine {
                                     ForEach(visibleBars) { bar in
