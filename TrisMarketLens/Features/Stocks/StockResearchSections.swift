@@ -81,7 +81,7 @@ struct StockResearchSections: View {
                                         Text("Close")
                                             .font(.caption)
                                             .foregroundStyle(WakColor.textSecondary)
-                                        Text(session.close.formatted())
+                                        Text(StockValueFormatter.price(session.close))
                                             .font(.headline)
                                             .monospacedDigit()
                                     }
@@ -153,11 +153,11 @@ struct StockResearchSections: View {
                             if let session = selectedBar {
                                 VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                                     Text(session.date).font(.headline)
-                                    LabeledContent("Open", value: session.open.formatted())
-                                    LabeledContent("High", value: session.high.formatted())
-                                    LabeledContent("Low", value: session.low.formatted())
-                                    LabeledContent("Close", value: session.close.formatted())
-                                    LabeledContent("Volume", value: session.volume.formatted())
+                                    LabeledContent("Open", value: StockValueFormatter.price(session.open))
+                                    LabeledContent("High", value: StockValueFormatter.price(session.high))
+                                    LabeledContent("Low", value: StockValueFormatter.price(session.low))
+                                    LabeledContent("Close", value: StockValueFormatter.price(session.close))
+                                    LabeledContent("Volume", value: StockValueFormatter.volume(session.volume))
                                 }
                                 .accessibilityElement(children: .combine)
                             }
@@ -167,11 +167,11 @@ struct StockResearchSections: View {
                                         .font(.headline)
                                     LabeledContent("From", value: summary.firstDate)
                                     LabeledContent("Through", value: summary.lastDate)
-                                    LabeledContent("High", value: summary.highest.formatted())
-                                    LabeledContent("Low", value: summary.lowest.formatted())
-                                    LabeledContent("Total volume", value: summary.totalVolume.formatted())
+                                    LabeledContent("High", value: StockValueFormatter.price(summary.highest))
+                                    LabeledContent("Low", value: StockValueFormatter.price(summary.lowest))
+                                    LabeledContent("Total volume", value: StockValueFormatter.volume(summary.totalVolume))
                                     if let change = summary.changePercent {
-                                        LabeledContent("Open-to-close change", value: change.formatted(.number.precision(.fractionLength(2))) + "%")
+                                        LabeledContent("Open-to-close change", value: StockValueFormatter.changePercent(change))
                                     }
                                 }
                                 .accessibilityElement(children: .combine)
