@@ -85,8 +85,14 @@ struct StockResearchSections: View {
                                             .font(.headline)
                                             .monospacedDigit()
                                     }
+                                    Button("Clear") {
+                                        selectedSession = nil
+                                    }
+                                    .font(.caption)
+                                    .buttonStyle(.bordered)
+                                    .accessibilityLabel("Clear selected trading session")
                                 }
-                                .accessibilityElement(children: .combine)
+                                .accessibilityElement(children: .contain)
                             }
                             Chart {
                                 if displayMode == .closingLine {
