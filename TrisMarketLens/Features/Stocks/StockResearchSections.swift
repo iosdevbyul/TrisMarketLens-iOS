@@ -11,6 +11,9 @@ struct StockResearchSections: View {
     @State private var selectedSession: String?
     @State private var analyses: [StockAnalysisRecord] = []
     @State private var evaluations: [PredictionEvaluation] = []
+    @State private var pricesRequestID = UUID()
+    @State private var analysisRequestID = UUID()
+    @State private var evaluationsRequestID = UUID()
     @State private var pricesLoading = true
     @State private var analysisLoading = true
     @State private var evaluationsLoading = true
@@ -233,17 +236,27 @@ struct StockResearchSections: View {
     }
 
     private func loadPrices() async {
+        let requestID = UUID()
+        pricesRequestID = requestID
         guard !Task.isCancelled else { return }
         pricesLoading = true
         do {
             let result = try await source.getOhlcv(ticker: ticker)
-            guard !Task.isCancelled else { return }
+            guard pricesRequestID == requestID else { return }
+            if Task.isCancelled {
+                pricesLoading = false
+                return
+            }
             guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
             bars = result.bars
             selectedSession = nil
             pricesError = nil
         } catch {
-            guard !Task.isCancelled else { return }
+            guard pricesRequestID == requestID else { return }
+            if Task.isCancelled {
+                pricesLoading = false
+                return
+            }
             bars = []
             selectedSession = nil
             pricesError = ResearchErrorGuidance.message(for: error)
@@ -252,16 +265,26 @@ struct StockResearchSections: View {
     }
 
     private func loadAnalysis() async {
+        let requestID = UUID()
+        analysisRequestID = requestID
         guard !Task.isCancelled else { return }
         analysisLoading = true
         do {
             let result = try await source.getAnalysis(ticker: ticker)
-            guard !Task.isCancelled else { return }
+            guard analysisRequestID == requestID else { return }
+            if Task.isCancelled {
+                analysisLoading = false
+                return
+            }
             guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
             analyses = result.newestFirst
             analysisError = nil
         } catch {
-            guard !Task.isCancelled else { return }
+            guard analysisRequestID == requestID else { return }
+            if Task.isCancelled {
+                analysisLoading = false
+                return
+            }
             analyses = []
             analysisError = ResearchErrorGuidance.message(for: error)
         }
@@ -269,16 +292,26 @@ struct StockResearchSections: View {
     }
 
     private func loadEvaluations() async {
+        let requestID = UUID()
+        evaluationsRequestID = requestID
         guard !Task.isCancelled else { return }
         evaluationsLoading = true
         do {
             let result = try await source.getEvaluations(ticker: ticker)
-            guard !Task.isCancelled else { return }
+            guard evaluationsRequestID == requestID else { return }
+            if Task.isCancelled {
+                evaluationsLoading = false
+                return
+            }
             guard result.ticker == ticker else { throw ResearchError.tickerMismatch }
             evaluations = result.evaluations
             evaluationsError = nil
         } catch {
-            guard !Task.isCancelled else { return }
+            guard evaluationsRequestID == requestID else { return }
+            if Task.isCancelled {
+                evaluationsLoading = false
+                return
+            }
             evaluations = []
             if case ResearchAPIError.httpStatus(404) = error {
                 evaluationsError = "Prediction evaluation API is not supported by this server (HTTP 404)."
