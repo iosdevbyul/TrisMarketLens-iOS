@@ -89,20 +89,28 @@ struct AnalysisHistoryView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-            if Task.isCancelled { return }
-            isLoading = true
-            do {
-                let snapshot = try await source.getScreener()
-                let result = DailyAnalysisSummary.summarize(snapshot.entries)
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                history = result
-                errorMessage = nil
-            } catch {
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                history = []
-                errorMessage = ResearchErrorGuidance.message(for: error)
+        guard !Task.isCancelled else { return }
+        isLoading = true
+        do {
+            let snapshot = try await source.getScreener()
+            let result = DailyAnalysisSummary.summarize(snapshot.entries)
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                isLoading = false
+                return
             }
-            isLoading = false
+            history = result
+            errorMessage = nil
+        } catch {
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                isLoading = false
+                return
+            }
+            history = []
+            errorMessage = ResearchErrorGuidance.message(for: error)
+        }
+        isLoading = false
     }
 }
 

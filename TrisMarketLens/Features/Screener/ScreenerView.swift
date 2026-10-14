@@ -98,19 +98,27 @@ struct ScreenerView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-            if Task.isCancelled { return }
-            isLoading = true
-            do {
-                let snapshot = try await source.getScreener()
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                entries = snapshot.entries
-                errorMessage = nil
-            } catch {
-                guard !Task.isCancelled, activeRequestID == requestID else { return }
-                entries = []
-                errorMessage = ResearchErrorGuidance.message(for: error)
+        guard !Task.isCancelled else { return }
+        isLoading = true
+        do {
+            let result = try await source.getScreener()
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                isLoading = false
+                return
             }
-            isLoading = false
+            entries = result.entries
+            errorMessage = nil
+        } catch {
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                isLoading = false
+                return
+            }
+            entries = []
+            errorMessage = ResearchErrorGuidance.message(for: error)
+        }
+        isLoading = false
     }
 }
 
