@@ -154,7 +154,7 @@ private struct ModelResearchDetailView: View {
                     LabeledContent("Direction", value: detail.direction)
                     LabeledContent("Role", value: detail.role)
                     LabeledContent("Feature set", value: detail.provenance.featureSet)
-                    LabeledContent("Artifact SHA-256", value: detail.provenance.artifactSha256)
+                    ResearchLongValueRow(label: "Artifact SHA-256", value: detail.provenance.artifactSha256)
                     Button("Copy artifact SHA-256") {
                         UIPasteboard.general.string = detail.provenance.artifactSha256
                     }
@@ -254,9 +254,9 @@ private struct EvidenceResearchDetailView: View {
                 Section("Research evidence") {
                     LabeledContent("State", value: detail.state.title)
                     LabeledContent("Source", value: detail.sourceLabel)
-                    LabeledContent("Source scope", value: detail.sourceScope)
+                    ResearchLongValueRow(label: "Source scope", value: detail.sourceScope)
                     if let fingerprint = detail.fingerprint, !fingerprint.isEmpty {
-                        LabeledContent("Fingerprint", value: fingerprint)
+                        ResearchLongValueRow(label: "Fingerprint", value: fingerprint)
                         Button("Copy fingerprint") {
                             UIPasteboard.general.string = fingerprint
                         }
