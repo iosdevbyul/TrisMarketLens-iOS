@@ -102,8 +102,11 @@ struct StockResearchSections: View {
                             .chartXSelection(value: $selectedSession)
                             .chartXAxis(.hidden)
                             .frame(height: 220)
-                            dateRangeLabels
                             .accessibilityLabel(displayMode == .closingLine ? "Historical closing price chart" : "Historical OHLCV chart")
+                            dateRangeLabels
+                            Text("Touch or drag across the chart to inspect a trading session.")
+                                .font(.caption2)
+                                .foregroundStyle(WakColor.textSecondary)
                             if displayMode == .closingLine {
                                 Text("Showing closing prices as a line for readability across longer periods.")
                                     .font(.caption)
