@@ -35,11 +35,10 @@ struct BacktestingOperationsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: WakSpacing.regular) {
-                Label(diagnostic == nil ? "Research API not connected" : "Research API configured", systemImage: "info.circle")
-                    .font(.footnote)
-                    .foregroundStyle(WakColor.textSecondary)
-
                 if page == .operations {
+                    Label(diagnostic == nil ? "Research API not connected" : "Research API configured", systemImage: "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
                     connectionContent
                     endpointContent
                 }
