@@ -21,6 +21,7 @@ struct BacktestingOperationsView: View {
     @State private var activeRequestID = UUID()
     @State private var activeDiagnosticID = UUID()
     @State private var endpointResults: [ResearchEndpointResult] = []
+    @State private var checkingConnection = false
     @State private var baseline: BaselineBacktestSnapshot?
     @State private var operations = OperationsSnapshot.disconnected
     @State private var loading = true
@@ -146,6 +147,11 @@ struct BacktestingOperationsView: View {
                     Button("Check connection again") {
                         Task { await refreshConnection() }
                     }
+                    .disabled(checkingConnection)
+                    if checkingConnection {
+                        ProgressView("Checking API endpoints")
+                            .font(.footnote)
+                    }
                 }
             }
         }
@@ -156,14 +162,22 @@ struct BacktestingOperationsView: View {
             WakCard {
                 VStack(alignment: .leading, spacing: WakSpacing.small) {
                     WakSectionHeader("Research endpoint readiness")
+                    if endpointResults.isEmpty {
+                        Text(checkingConnection ? "Checking endpoint availability…" : "No endpoint diagnostics available.")
+                            .font(.footnote)
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
                     ForEach(endpointResults) { result in
                         VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                             Text(result.name).font(.headline)
-                            Text(result.path).font(.caption).foregroundStyle(WakColor.textSecondary)
-                            Text(String(describing: result.state).capitalized)
+                            Text(result.path)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(WakColor.textSecondary)
+                                .textSelection(.enabled)
+                            Label(String(describing: result.state).capitalized, systemImage: result.state == .available ? "checkmark.circle" : "info.circle")
+                                .font(.subheadline.weight(.medium))
                             Text(result.detail).font(.footnote).foregroundStyle(WakColor.textSecondary)
                         }
-                        Divider()
                     }
                 }
             }
@@ -174,15 +188,25 @@ struct BacktestingOperationsView: View {
         let diagnosticID = UUID()
         activeDiagnosticID = diagnosticID
         guard !Task.isCancelled else { return }
+        checkingConnection = true
         let response = await diagnostic?.check() ?? .notConfigured
-        guard activeDiagnosticID == diagnosticID, !Task.isCancelled else { return }
+        guard activeDiagnosticID == diagnosticID else { return }
+        if Task.isCancelled {
+            checkingConnection = false
+            return
+        }
         connection = response
         endpointResults = []
         if let diagnostic, response.state == .reachable {
             let results = await ResearchEndpointDiagnostic(client: diagnostic.client).check()
-            guard activeDiagnosticID == diagnosticID, !Task.isCancelled else { return }
+            guard activeDiagnosticID == diagnosticID else { return }
+            if Task.isCancelled {
+                checkingConnection = false
+                return
+            }
             endpointResults = results
         }
+        checkingConnection = false
     }
 
     @ViewBuilder private var backtestingContent: some View {
