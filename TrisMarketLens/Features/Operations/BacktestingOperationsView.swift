@@ -241,7 +241,22 @@ struct BacktestingOperationsView: View {
                             .foregroundStyle(WakColor.textSecondary)
                     }
                     ForEach(baseline.fingerprints) { item in
-                        LabeledContent(item.label, value: item.value)
+                        VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
+                            Text(item.label)
+                                .font(.subheadline.weight(.semibold))
+                            Text(item.value)
+                                .font(.system(.footnote, design: .monospaced))
+                                .foregroundStyle(WakColor.textSecondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button {
+                                UIPasteboard.general.string = item.value
+                            } label: {
+                                Label("Copy fingerprint", systemImage: "doc.on.doc")
+                                    .font(.caption)
+                            }
+                            .accessibilityLabel("Copy \(item.label) fingerprint")
+                        }
                     }
                 }
             }
