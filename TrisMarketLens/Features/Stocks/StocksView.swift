@@ -87,9 +87,9 @@ struct StocksView: View {
                 return
             }
             stocks = result
-            requestStatus = "Loaded \\(result.count) stocks"
+            requestStatus = "Loaded \(result.count) stocks"
             #if DEBUG
-            print("[Stocks] Loaded \\(result.count) published stocks")
+            print("[Stocks] Loaded \(result.count) published stocks")
             #endif
         } catch {
             guard activeRequestID == requestID else { return }
@@ -100,9 +100,9 @@ struct StocksView: View {
             }
             stocks = []
             errorMessage = ResearchErrorGuidance.message(for: error)
-            requestStatus = "Request failed: \\(String(describing: error))"
+            requestStatus = "Request failed: \(String(describing: error))"
             #if DEBUG
-            print("[Stocks] Request failed: \\(String(reflecting: error))")
+            print("[Stocks] Request failed: \(String(reflecting: error))")
             #endif
         }
         loading = false
