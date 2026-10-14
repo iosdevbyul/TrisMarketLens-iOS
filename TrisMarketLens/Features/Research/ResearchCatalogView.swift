@@ -155,6 +155,9 @@ private struct ModelResearchDetailView: View {
                     LabeledContent("Role", value: detail.role)
                     LabeledContent("Feature set", value: detail.provenance.featureSet)
                     LabeledContent("Artifact SHA-256", value: detail.provenance.artifactSha256)
+                    Button("Copy artifact SHA-256") {
+                        UIPasteboard.general.string = detail.provenance.artifactSha256
+                    }
                     LabeledContent("Label", value: detail.provenance.label)
                     LabeledContent("Prediction horizon", value: "\(detail.provenance.horizonSessions) sessions")
                     LabeledContent("Classification threshold", value: detail.provenance.threshold.formatted())
@@ -173,7 +176,7 @@ private struct ModelResearchDetailView: View {
                         .font(.footnote)
                         .foregroundStyle(WakColor.textSecondary)
                     LabeledContent("Average precision", value: detail.validation.averagePrecision.formatted())
-                    LabeledContent("Sample count", value: String(detail.validation.sampleCount))
+                    LabeledContent("Sample count", value: detail.validation.sampleCount.formatted())
                     LabeledContent("Precision", value: detail.validation.precision.formatted())
                     LabeledContent("Recall", value: detail.validation.recall.formatted())
                     LabeledContent("F1", value: detail.validation.f1.formatted())
@@ -184,7 +187,7 @@ private struct ModelResearchDetailView: View {
                         .font(.footnote)
                         .foregroundStyle(WakColor.textSecondary)
                     LabeledContent("Average precision", value: detail.oos.averagePrecision.formatted())
-                    LabeledContent("Sample count", value: String(detail.oos.sampleCount))
+                    LabeledContent("Sample count", value: detail.oos.sampleCount.formatted())
                     LabeledContent("Precision", value: detail.oos.precision.formatted())
                     LabeledContent("Recall", value: detail.oos.recall.formatted())
                     LabeledContent("F1", value: detail.oos.f1.formatted())
@@ -254,6 +257,9 @@ private struct EvidenceResearchDetailView: View {
                     LabeledContent("Source scope", value: detail.sourceScope)
                     if let fingerprint = detail.fingerprint, !fingerprint.isEmpty {
                         LabeledContent("Fingerprint", value: fingerprint)
+                        Button("Copy fingerprint") {
+                            UIPasteboard.general.string = fingerprint
+                        }
                     } else {
                         LabeledContent("Fingerprint", value: "Not published")
                     }
