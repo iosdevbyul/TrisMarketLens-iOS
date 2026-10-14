@@ -52,15 +52,23 @@ struct StockDetailView: View {
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard !Task.isCancelled, activeRequestID == requestID else { return }
+        guard activeRequestID == requestID, !Task.isCancelled else { return }
         loading = true
         do {
             let response = try await source.getStock(ticker: ticker)
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             detail = response
             errorMessage = nil
         } catch {
-            guard !Task.isCancelled, activeRequestID == requestID else { return }
+            guard activeRequestID == requestID else { return }
+            if Task.isCancelled {
+                loading = false
+                return
+            }
             detail = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
