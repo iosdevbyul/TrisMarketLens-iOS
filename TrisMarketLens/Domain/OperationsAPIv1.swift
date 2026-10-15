@@ -113,6 +113,9 @@ enum OperationsPresentation {
         case "advisory": "Advisory"
         case "warning": "Warning"
         case "error": "Error"
+        case "corporate-actions": "Corporate Actions"
+        case "runner-tail": "Runner Tail"
+        case "run-input-freeze": "Run Input Freeze"
         case "market_snapshot": "Market snapshot"
         case "dart_acquisition": "DART acquisition"
         case "dart_batch_acquisition": "DART batch acquisition"
@@ -130,7 +133,31 @@ enum OperationsPresentation {
         }
     }
 
-    static func timestamp(_ value: String?) -> String { value ?? "Not available" }
+    static func timestamp(_ value: String?, timeZone: TimeZone = .current) -> String {
+        guard let value else { return "Not available" }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = parser.date(from: value)
+        if date == nil {
+            parser.formatOptions = [.withInternetDateTime]
+            date = parser.date(from: value)
+        }
+        guard let date else { return "Invalid timestamp" }
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
+    }
+
+    static func freshnessBasis(_ value: String) -> String {
+        switch value {
+        case "acquisition_age": return "Acquisition age"
+        case "unavailable": return "Freshness policy unavailable"
+        default: return title(value)
+        }
+    }
 
     static func diagnostic(_ code: String?) -> String {
         guard let code, !code.isEmpty else { return "No diagnostic published." }
@@ -138,6 +165,12 @@ enum OperationsPresentation {
         case "dart_evidence_busy": "DART evidence is temporarily busy; retry after the writer releases its lock."
         case "snapshot_pipeline_blocked": "The research snapshot reports a blocked pipeline."
         case "timestamp_and_freshness_policy_unavailable": "A verified timestamp and freshness policy are not available."
+        case "acquisition_timestamp_or_policy_unavailable": "The acquisition timestamp or freshness policy is unavailable; freshness cannot be determined."
+        case "freshness_policy_or_timestamp_unavailable": "A freshness policy or verified timestamp is unavailable."
+        case "dart_evidence_not_configured": "DART evidence has not been configured on this server."
+        case "recorded_outcome_not_provenance": "This recorded outcome does not independently verify ingestion provenance."
+        case "market_audit_validation_failed": "Market collection audit validation failed."
+        case "dart_evidence_validation_failed": "DART evidence validation failed."
         default: "Diagnostic available (\(code)); see backend operations documentation."
         }
     }

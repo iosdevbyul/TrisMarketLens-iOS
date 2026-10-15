@@ -95,6 +95,28 @@ final class OperationsV1Tests: XCTestCase {
         } catch OperationsContractError.invalidPagination {}
     }
 
+    func testOperationsPresentationUsesFriendlySourceNamesAndFreshnessSemantics() {
+        XCTAssertEqual(OperationsPresentation.title("corporate-actions"), "Corporate Actions")
+        XCTAssertEqual(OperationsPresentation.title("runner-tail"), "Runner Tail")
+        XCTAssertEqual(OperationsPresentation.title("run-input-freeze"), "Run Input Freeze")
+        XCTAssertEqual(OperationsPresentation.freshnessBasis("unavailable"), "Freshness policy unavailable")
+        XCTAssertEqual(OperationsPresentation.freshnessBasis("acquisition_age"), "Acquisition age")
+        XCTAssertTrue(OperationsPresentation.diagnostic("freshness_policy_or_timestamp_unavailable").contains("policy"))
+        XCTAssertTrue(OperationsPresentation.diagnostic("acquisition_timestamp_or_policy_unavailable").contains("acquisition"))
+    }
+
+    func testOperationsTimestampsAreLocalizedWithoutInventingNullDates() {
+        let utc = TimeZone(secondsFromGMT: 0)!
+        let korea = TimeZone(secondsFromGMT: 9 * 3600)!
+        let timestamp = "2026-10-14T05:26:22.811769Z"
+        let utcValue = OperationsPresentation.timestamp(timestamp, timeZone: utc)
+        let koreanValue = OperationsPresentation.timestamp(timestamp, timeZone: korea)
+        XCTAssertNotEqual(utcValue, koreanValue)
+        XCTAssertTrue(utcValue.contains("05:26:22") || utcValue.contains("5:26:22"))
+        XCTAssertEqual(OperationsPresentation.timestamp(nil), "Not available")
+        XCTAssertEqual(OperationsPresentation.timestamp("bad timestamp"), "Invalid timestamp")
+    }
+
     func testMalformedJSONFailsClosed() {
         XCTAssertThrowsError(try JSONDecoder().decode(OperationsAlertsPage.self, from: Data("{".utf8)))
     }

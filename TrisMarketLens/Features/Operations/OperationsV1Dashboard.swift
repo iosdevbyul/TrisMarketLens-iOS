@@ -74,10 +74,17 @@ struct OperationsV1Dashboard: View {
                             LabeledContent("Freshness", value: OperationsPresentation.title(item.freshnessStatus))
                             LabeledContent("Evidence", value: OperationsPresentation.title(item.evidenceStatus))
                             LabeledContent("Latest data date", value: item.latestDataDate ?? "Not available")
-                            LabeledContent("Verified data at", value: OperationsPresentation.timestamp(item.latestVerifiedDataAt))
-                            LabeledContent("Successful ingestion at", value: OperationsPresentation.timestamp(item.latestSuccessfulIngestionAt))
+                            Text("Verified data at").foregroundStyle(WakColor.textSecondary)
+                            Text(OperationsPresentation.timestamp(item.latestVerifiedDataAt))
+                                .font(.footnote.monospacedDigit())
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("Successful ingestion at").foregroundStyle(WakColor.textSecondary)
+                            Text(OperationsPresentation.timestamp(item.latestSuccessfulIngestionAt))
+                                .font(.footnote.monospacedDigit())
+                                .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
                             LabeledContent("Records", value: item.recordCount.map { $0.formatted() } ?? "Not available")
-                            LabeledContent("Freshness basis", value: OperationsPresentation.title(item.freshnessBasis))
+                            LabeledContent("Freshness basis", value: OperationsPresentation.freshnessBasis(item.freshnessBasis))
                             if let seconds = item.thresholdSeconds { LabeledContent("Threshold", value: "\(seconds) seconds") }
                             if let reason = item.blockingReason { Text(OperationsPresentation.diagnostic(reason)).font(.footnote) }
                             Divider()
@@ -104,7 +111,7 @@ struct OperationsV1Dashboard: View {
                             LabeledContent("Occurred", value: OperationsPresentation.timestamp(alert.occurredAt))
                             if let count = alert.verifiedCount { LabeledContent("Verified count", value: count.formatted()) }
                             if let count = alert.requiredCount { LabeledContent("Required count", value: count.formatted()) }
-                            Text(OperationsPresentation.diagnostic(alert.diagnostic)).font(.footnote)
+                            Text(OperationsPresentation.diagnostic(alert.diagnostic)).font(.footnote).fixedSize(horizontal: false, vertical: true)
                             Divider()
                         }
                     }
