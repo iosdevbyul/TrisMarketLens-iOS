@@ -106,6 +106,12 @@ private actor OperationsScriptClient: NetworkClient {
     let alerts: Data
     private(set) var freshnessAttempts = 0
 
+    init(runs: Data, freshness: Data, alerts: Data) {
+        self.runs = runs
+        self.freshness = freshness
+        self.alerts = alerts
+    }
+
     func request<T: Decodable>(endpoint: any Endpoint, responseType: T.Type) async throws -> T {
         let data: Data
         if endpoint.path.hasSuffix("/runs") { data = runs }
