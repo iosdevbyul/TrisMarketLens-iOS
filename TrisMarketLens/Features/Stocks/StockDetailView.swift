@@ -19,6 +19,18 @@ struct StockDetailView: View {
                 ContentUnavailableView("Stock unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
                 Button("Retry") { Task { await reload() } }
             } else if let detail {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(detail.displayName)
+                            .font(.title2.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(detail.ticker)
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
                 Section("Stock research") {
                     LabeledContent("Ticker", value: detail.ticker)
                     LabeledContent("Market", value: detail.market)
@@ -44,7 +56,7 @@ struct StockDetailView: View {
         }
         .scrollContentBackground(.hidden)
         .background(WakColor.background)
-        .navigationTitle(detail?.displayName ?? ticker)
+        .navigationTitle(ticker)
         .refreshable { await reload() }
         .task(id: ticker) { await reload() }
     }
