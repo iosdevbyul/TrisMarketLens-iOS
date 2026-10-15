@@ -25,6 +25,10 @@ struct StockResearchSections: View {
 
     private var displayMode: StockChartDisplayMode { .mode(sessionCount: visibleBars.count) }
 
+    private var priceDomain: ClosedRange<Double>? {
+        StockPriceAxis.domain(for: visibleBars)
+    }
+
     private var dateRangeLabels: some View {
         let dates = StockChartAxisLabels.dates(for: visibleBars.map { $0.date }, maxLabels: 4)
         return HStack(spacing: 2) {
@@ -137,16 +141,19 @@ struct StockResearchSections: View {
                                         }
                                 }
                             }
+                            .chartYScale(domain: priceDomain ?? 0...1)
                             .chartXSelection(value: $selectedSession)
                             .chartXAxis(.hidden)
                             .frame(height: 220)
                             .accessibilityLabel(displayMode == .closingLine ? "Historical closing price chart" : "Historical OHLCV chart")
                             dateRangeLabels
                             Text("Touch or drag across the chart to inspect a trading session.")
+                                .fixedSize(horizontal: false, vertical: true)
                                 .font(.caption2)
                                 .foregroundStyle(WakColor.textSecondary)
                             if displayMode == .closingLine {
                                 Text("Showing closing prices as a line for readability across longer periods.")
+                                    .fixedSize(horizontal: false, vertical: true)
                                     .font(.caption)
                                     .foregroundStyle(WakColor.textSecondary)
                             }
@@ -208,6 +215,7 @@ struct StockResearchSections: View {
                             dateRangeLabels
                             .accessibilityLabel("Historical traded volume chart")
                             Text("Bars are displayed only when supplied by the selected research source.")
+                                .fixedSize(horizontal: false, vertical: true)
                                 .font(.footnote)
                                 .foregroundStyle(WakColor.textSecondary)
                         }
