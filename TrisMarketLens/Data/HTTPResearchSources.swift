@@ -9,6 +9,13 @@ struct HTTPProjectStatusSource: ProjectStatusSource {
 
 struct HTTPStockSource: StockSource {
     let client: ResearchAPIClient
+    func getOHLCV(ticker: String) async throws -> OhlcvSeries? {
+        do {
+            return try await client.fetch(OhlcvSeries.self, path: ["api", "v1", "stocks", ticker, "ohlcv"])
+        } catch ResearchAPIError.httpStatus(404) {
+            return nil
+        }
+    }
     func getStocks() async throws -> [StockSummary] {
         try await client.fetch([StockSummary].self, path: ["api", "v1", "stocks"])
     }

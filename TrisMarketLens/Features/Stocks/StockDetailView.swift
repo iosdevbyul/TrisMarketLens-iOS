@@ -7,6 +7,8 @@ struct StockDetailView: View {
     var researchSource: any StockResearchSource = DisconnectedStockResearchSource()
 
     @State private var detail: StockDetail?
+    @State private var ohlcv: OhlcvSeries?
+    @State private var chartMessage: String?
     @State private var activeRequestID = UUID()
     @State private var loading = true
     @State private var errorMessage: String?
@@ -28,6 +30,14 @@ struct StockDetailView: View {
                 Section("Historical coverage") {
                     LabeledContent("Available from", value: detail.availableFrom)
                     LabeledContent("Latest coverage", value: detail.latestDataDate)
+                }
+                Section("Historical price and volume") {
+                    if let ohlcv {
+                        StockOHLCVChartView(series: ohlcv)
+                    } else {
+                        Text(chartMessage ?? "No approved OHLCV series available.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Section("Quality and lifecycle") {
                     Text(detail.evidenceNote)
@@ -63,6 +73,19 @@ struct StockDetailView: View {
             }
             detail = response
             errorMessage = nil
+            ohlcv = nil
+            chartMessage = nil
+            if response != nil {
+                do {
+                    ohlcv = try await source.getOHLCV(ticker: ticker)
+                    chartMessage = ohlcv == nil ? "No historical OHLCV for this ticker." : nil
+                } catch ResearchAPIError.httpStatus(503) {
+                    chartMessage = "Market database is not enabled on the API. Configure an approved immutable database and its SHA-256."
+                } catch {
+                    chartMessage = ResearchErrorGuidance.message(for: error)
+                }
+                guard activeRequestID == requestID, !Task.isCancelled else { return }
+            }
         } catch {
             guard activeRequestID == requestID else { return }
             if Task.isCancelled {
@@ -70,6 +93,8 @@ struct StockDetailView: View {
                 return
             }
             detail = nil
+            ohlcv = nil
+            chartMessage = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false
