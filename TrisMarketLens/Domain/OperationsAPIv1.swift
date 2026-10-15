@@ -126,7 +126,7 @@ enum OperationsPresentation {
         case "missing_evidence": "Missing evidence"
         case "freshness_unknown": "Freshness unknown"
         case "freshness_stale": "Freshness stale"
-        default: return "Unrecognized (\(value))"
+        default: "Unrecognized (\(value))"
         }
     }
 
