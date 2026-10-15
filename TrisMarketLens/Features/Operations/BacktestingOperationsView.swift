@@ -18,6 +18,7 @@ struct BacktestingOperationsView: View {
     private let source: any BacktestingOperationsSource
     private let diagnostic: ResearchConnectionDiagnostic?
     private let operationsV1Source: any OperationsV1Source
+    @State private var diagnosticsExpanded = false
     @State private var connection = ResearchConnectionReport.notConfigured
     @State private var activeRequestID = UUID()
     @State private var activeDiagnosticID = UUID()
@@ -41,15 +42,18 @@ struct BacktestingOperationsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: WakSpacing.regular) {
                 if page == .operations {
-                    Label(diagnostic == nil ? "Research API not connected" : "Research API configured", systemImage: "info.circle")
-                        .font(.footnote)
-                        .foregroundStyle(WakColor.textSecondary)
-                    connectionContent
-                    endpointContent
-                }
-
-                if page == .operations {
                     OperationsV1Dashboard(source: operationsV1Source)
+                    DisclosureGroup("API connectivity and endpoint diagnostics", isExpanded: $diagnosticsExpanded) {
+                        VStack(alignment: .leading, spacing: WakSpacing.regular) {
+                            Label(diagnostic == nil ? "Research API not connected" : "Research API configured", systemImage: "info.circle")
+                                .font(.footnote)
+                                .foregroundStyle(WakColor.textSecondary)
+                            connectionContent
+                            endpointContent
+                        }
+                        .padding(.top, WakSpacing.small)
+                    }
+                    .accessibilityHint("Expand to inspect API connectivity and endpoint status")
                 }
 
                 if page == .backtesting && loading {
