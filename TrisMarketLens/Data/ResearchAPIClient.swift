@@ -49,13 +49,13 @@ struct ResearchAPIClient {
         self.networkClient = networkClient
     }
 
-    func fetch<T: Decodable>(_ type: T.Type, path: [String]) async throws -> T {
+    func fetch<T: Decodable>(_ type: T.Type, path: [String], queryItems: [URLQueryItem] = []) async throws -> T {
         guard !path.isEmpty,
               path.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") }) else {
             throw ResearchAPIError.invalidConfiguration
         }
 
-        let endpoint = ResearchEndpoint(path: path.joined(separator: "/"))
+        let endpoint = ResearchEndpoint(path: path.joined(separator: "/"), queryItems: queryItems)
         do {
             return try await networkClient.request(endpoint: endpoint, responseType: type)
         } catch let error as NetworkError {
@@ -78,6 +78,7 @@ struct ResearchAPIClient {
 
 private struct ResearchEndpoint: Endpoint {
     let path: String
+    let queryItems: [URLQueryItem]
     let method: HTTPMethod = .get
     let headers = ["Accept": "application/json"]
 }
