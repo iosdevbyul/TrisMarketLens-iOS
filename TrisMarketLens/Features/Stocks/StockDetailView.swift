@@ -31,6 +31,10 @@ struct StockDetailView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                Section {
+                    StockResearchSections(ticker: ticker, source: researchSource, display: .prices)
+                        .listRowBackground(WakColor.background)
+                }
                 Section("Stock research") {
                     LabeledContent("Ticker", value: detail.ticker)
                     LabeledContent("Market", value: detail.market)
@@ -47,7 +51,7 @@ struct StockDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Research evidence") {
-                    StockResearchSections(ticker: ticker, source: researchSource)
+                    StockResearchSections(ticker: ticker, source: researchSource, display: .research)
                         .listRowBackground(WakColor.background)
                 }
             } else {

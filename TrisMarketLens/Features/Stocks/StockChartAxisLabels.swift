@@ -1,6 +1,15 @@
 import Foundation
 
 enum StockChartAxisLabels {
+    static func label(for date: String, period: StockChartPeriod) -> String {
+        guard date.count == 10, date[date.index(date.startIndex, offsetBy: 4)] == "-" else { return date }
+        switch period {
+        case .month, .quarter: return String(date.suffix(5))
+        case .year: return String(date.dropFirst(2).prefix(5))
+        case .all: return String(date.prefix(4))
+        }
+    }
+
     /// Sample a handful of actual trading sessions for categorical date axes.
     /// Swift Charts does not honor automatic desiredCount for String categories.
     static func dates(for dates: [String], maxLabels: Int = 5) -> [String] {
