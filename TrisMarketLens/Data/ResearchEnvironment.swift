@@ -95,7 +95,4 @@ private struct UnavailableStockSource: StockSource {
     func getStock(ticker: String) async throws -> StockDetail? {
         throw UnavailableResearchError.disconnected
     }
-    func getOHLCV(ticker: String) async throws -> OhlcvSeries? {
-        throw UnavailableResearchError.disconnected
-    }
 }

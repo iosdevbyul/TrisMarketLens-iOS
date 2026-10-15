@@ -3,7 +3,6 @@ import Foundation
 protocol StockSource {
     func getStocks() async throws -> [StockSummary]
     func getStock(ticker: String) async throws -> StockDetail?
-    func getOHLCV(ticker: String) async throws -> OhlcvSeries?
 }
 
 /// Synthetic fixtures. No price, prediction, or performance data is generated.
@@ -15,8 +14,6 @@ struct MockStockSource: StockSource {
     ]
 
     func getStocks() async throws -> [StockSummary] { stocks }
-
-    func getOHLCV(ticker: String) async throws -> OhlcvSeries? { nil }
 
     func getStock(ticker: String) async throws -> StockDetail? {
         guard let stock = stocks.first(where: { $0.ticker == ticker }) else { return nil }

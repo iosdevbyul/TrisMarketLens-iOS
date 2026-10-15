@@ -300,7 +300,11 @@ struct StockResearchSections: View {
             }
             bars = []
             selectedSession = nil
-            pricesError = ResearchErrorGuidance.message(for: error)
+            if case ResearchAPIError.httpStatus(503) = error {
+                pricesError = "Historical prices unavailable: the API market database is not enabled. An approved immutable Market DB and matching SHA-256 are required."
+            } else {
+                pricesError = ResearchErrorGuidance.message(for: error)
+            }
         }
         pricesLoading = false
     }
