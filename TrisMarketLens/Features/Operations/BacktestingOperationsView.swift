@@ -17,6 +17,7 @@ struct BacktestingOperationsView: View {
     let page: Page
     private let source: any BacktestingOperationsSource
     private let diagnostic: ResearchConnectionDiagnostic?
+    private let operationsV1Source: any OperationsV1Source
     @State private var connection = ResearchConnectionReport.notConfigured
     @State private var activeRequestID = UUID()
     @State private var activeDiagnosticID = UUID()
@@ -29,7 +30,8 @@ struct BacktestingOperationsView: View {
     @State private var operationsHistoryMissing = false
     @State private var errorMessage: String?
 
-    init(page: Page, source: any BacktestingOperationsSource = DisconnectedBacktestingOperationsSource(), diagnostic: ResearchConnectionDiagnostic? = nil) {
+    init(page: Page, source: any BacktestingOperationsSource = DisconnectedBacktestingOperationsSource(), operationsV1Source: any OperationsV1Source = UnavailableOperationsV1Source(), diagnostic: ResearchConnectionDiagnostic? = nil) {
+        self.operationsV1Source = operationsV1Source
         self.diagnostic = diagnostic
         self.page = page
         self.source = source
@@ -46,10 +48,14 @@ struct BacktestingOperationsView: View {
                     endpointContent
                 }
 
-                if loading {
+                if page == .operations {
+                    OperationsV1Dashboard(source: operationsV1Source)
+                }
+
+                if page == .backtesting && loading {
                     ProgressView("Loading research")
-                } else if page == .operations && operationsHistoryMissing {
-                    operationsHistoryUnavailableContent
+                } else if page == .operations {
+                    EmptyView()
                 } else if failed {
                     ContentUnavailableView("Research unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage ?? "Unable to load research operations."))
                     Button("Retry") { Task { await reload() } }
@@ -77,7 +83,11 @@ struct BacktestingOperationsView: View {
         failed = false
         operationsHistoryMissing = false
         errorMessage = nil
-        if page == .operations { await refreshConnection() }
+        if page == .operations {
+            await refreshConnection()
+            loading = false
+            return
+        }
         guard activeRequestID == requestID else { return }
         if Task.isCancelled {
             loading = false

@@ -69,6 +69,11 @@ struct ResearchEnvironment {
         return DisconnectedResearchCatalogSource()
     }
 
+    func operationsV1() -> any OperationsV1Source {
+        if let client { return HTTPOperationsV1Source(client: client) }
+        return UnavailableOperationsV1Source()
+    }
+
     func operations() -> any BacktestingOperationsSource {
         if let client { return HTTPBacktestingOperationsSource(client: client) }
         return DisconnectedBacktestingOperationsSource()
