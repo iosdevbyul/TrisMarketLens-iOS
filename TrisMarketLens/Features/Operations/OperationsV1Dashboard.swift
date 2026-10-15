@@ -11,6 +11,9 @@ struct OperationsV1Dashboard: View {
     @State private var alertsTotal = 0
     @State private var runsEvidence = "unavailable"
     @State private var runsDiagnostic: String?
+    @State private var runsLoaded = false
+    @State private var freshnessLoaded = false
+    @State private var alertsLoaded = false
     @State private var runsLoading = false
     @State private var freshnessLoading = false
     @State private var alertsLoading = false
@@ -30,7 +33,7 @@ struct OperationsV1Dashboard: View {
                         .font(.footnote).foregroundStyle(WakColor.textSecondary)
                     Text("Evidence: \(OperationsPresentation.title(runsEvidence))")
                     if let runsDiagnostic { Text(OperationsPresentation.diagnostic(runsDiagnostic)).font(.footnote) }
-                    if runs.isEmpty && !runsLoading && runsError == nil {
+                    if runs.isEmpty && runsLoaded && !runsLoading && runsError == nil {
                         Text("No recorded runs available.").foregroundStyle(WakColor.textSecondary)
                     }
                     ForEach(runs) { run in
@@ -62,7 +65,7 @@ struct OperationsV1Dashboard: View {
                     WakSectionHeader("Source freshness")
                     Text("DART acquisition recency does not establish document publication completeness.")
                         .font(.footnote).foregroundStyle(WakColor.textSecondary)
-                    if freshness.isEmpty && !freshnessLoading && freshnessError == nil {
+                    if freshness.isEmpty && freshnessLoaded && !freshnessLoading && freshnessError == nil {
                         Text("No freshness sources reported.").foregroundStyle(WakColor.textSecondary)
                     }
                     ForEach(freshness) { item in
@@ -88,7 +91,7 @@ struct OperationsV1Dashboard: View {
             WakCard {
                 VStack(alignment: .leading, spacing: WakSpacing.small) {
                     WakSectionHeader("Operational alerts")
-                    if alerts.isEmpty && !alertsLoading && alertsError == nil {
+                    if alerts.isEmpty && alertsLoaded && !alertsLoading && alertsError == nil {
                         Text("No operational alerts reported.").foregroundStyle(WakColor.textSecondary)
                     }
                     ForEach(alerts) { alert in
@@ -118,7 +121,14 @@ struct OperationsV1Dashboard: View {
             }
             .accessibilityLabel("Refresh operations runs, freshness, and alerts")
         }
-        .task { await refreshAll() }
+        .onAppear {
+            // The parent updates connection diagnostics while this view loads.
+            // An unstructured launch prevents those parent updates from cancelling
+            // the dashboard’s initial fetch and silently leaving all sections empty.
+            if !runsLoaded && !freshnessLoaded && !alertsLoaded {
+                Task { await refreshAll() }
+            }
+        }
     }
 
     @ViewBuilder private func failure(_ message: String, action: @escaping () -> Void) -> some View {
@@ -148,6 +158,7 @@ struct OperationsV1Dashboard: View {
                     let existing = Set(runs.map(\.id))
                     runs.append(contentsOf: page.items.filter { !existing.contains($0.id) })
                 }
+                runsLoaded = true
                 runsTotal = page.total
                 runsEvidence = page.evidenceStatus
                 runsDiagnostic = page.diagnostic
@@ -168,7 +179,10 @@ struct OperationsV1Dashboard: View {
         do {
             let result = try await source.getFreshness()
             guard freshnessRequestID == requestID else { return }
-            if !Task.isCancelled { freshness = result.items }
+            if !Task.isCancelled {
+                freshness = result.items
+                freshnessLoaded = true
+            }
         } catch {
             guard freshnessRequestID == requestID else { return }
             if !Task.isCancelled { freshnessError = message(error) }
@@ -191,6 +205,7 @@ struct OperationsV1Dashboard: View {
                     let existing = Set(alerts.map(\.id))
                     alerts.append(contentsOf: page.items.filter { !existing.contains($0.id) })
                 }
+                alertsLoaded = true
                 alertsTotal = page.total
             }
         } catch {
