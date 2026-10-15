@@ -10,7 +10,7 @@ final class ResearchEndpointDiagnosticTests: XCTestCase {
             networkClient: EndpointFixtureClient()
         )
         let results = await ResearchEndpointDiagnostic(client: api).check()
-        XCTAssertEqual(results.count, 8)
+        XCTAssertEqual(results.count, 10)
         XCTAssertEqual(results.first?.state, .notConfigured)
         XCTAssertEqual(results.first?.path, "/api/v1/project/status")
         XCTAssertEqual(results.last?.state, .missing)
