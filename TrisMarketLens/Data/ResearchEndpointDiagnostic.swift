@@ -44,8 +44,16 @@ struct ResearchEndpointDiagnostic {
         results.append(await probe("AI Screener", path: "/api/v1/analysis/screener") {
             _ = try await HTTPScreenerSource(client: client).getScreener()
         })
-        results.append(.init(name: "Operations history", path: "/api/v1/operations",
-                             state: .missing, detail: "Not defined by the current backend FastAPI router."))
+        let operations = HTTPOperationsV1Source(client: client)
+        results.append(await probe("Operations runs", path: "/api/v1/operations/runs") {
+            _ = try await operations.getRuns(offset: 0, limit: OperationsContract.pageLimit)
+        })
+        results.append(await probe("Operations freshness", path: "/api/v1/operations/freshness") {
+            _ = try await operations.getFreshness()
+        })
+        results.append(await probe("Operations alerts", path: "/api/v1/operations/alerts") {
+            _ = try await operations.getAlerts(offset: 0, limit: OperationsContract.pageLimit)
+        })
         results.append(.init(name: "Prediction evaluations", path: "/api/v1/stocks/{ticker}/evaluations",
                              state: .missing, detail: "Not defined by the current backend FastAPI router."))
         return results
@@ -62,6 +70,12 @@ struct ResearchEndpointDiagnostic {
         } catch ResearchAPIError.httpStatus(404) {
             return .init(name: name, path: path, state: .missing,
                          detail: "Endpoint returned 404.")
+        } catch OperationsContractError.unsupportedSchema {
+            return .init(name: name, path: path, state: .incompatible,
+                         detail: "Unsupported Operations API schema version.")
+        } catch OperationsContractError.invalidPagination {
+            return .init(name: name, path: path, state: .incompatible,
+                         detail: "Invalid pagination metadata.")
         } catch ResearchAPIError.invalidPayload {
             return .init(name: name, path: path, state: .incompatible,
                          detail: "Returned response does not match the iOS data contract.")
