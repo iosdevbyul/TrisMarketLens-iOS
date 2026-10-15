@@ -2,9 +2,12 @@ import SwiftUI
 import Charts
 import WakTrainerDesignSystem
 
+enum StockResearchDisplay { case prices, research }
+
 struct StockResearchSections: View {
     let ticker: String
     let source: any StockResearchSource
+    var display: StockResearchDisplay = .research
 
     @State private var bars: [OhlcvBar] = []
     @State private var selectedPeriod: StockChartPeriod = .quarter
@@ -33,7 +36,7 @@ struct StockResearchSections: View {
         let dates = StockChartAxisLabels.dates(for: visibleBars.map { $0.date }, maxLabels: 4)
         return HStack(spacing: 2) {
             ForEach(Array(dates.enumerated()), id: \.offset) { item in
-                Text(String(item.element.suffix(5)))
+                Text(StockChartAxisLabels.label(for: item.element, period: selectedPeriod))
                     .frame(maxWidth: .infinity, alignment: item.offset == 0 ? .leading : item.offset == dates.count - 1 ? .trailing : .center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -51,6 +54,7 @@ struct StockResearchSections: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: WakSpacing.regular) {
+            if display == .prices {
             WakCard {
                     VStack(alignment: .leading, spacing: WakSpacing.regular) {
                         WakSectionHeader("Price and volume")
@@ -221,6 +225,8 @@ struct StockResearchSections: View {
                         }
                     }
                 }
+            }
+            if display == .research {
                 WakCard {
                     VStack(alignment: .leading, spacing: WakSpacing.small) {
                         WakSectionHeader("AI analysis")
@@ -278,10 +284,11 @@ struct StockResearchSections: View {
                         }
                     }
                 }
+            }
         }
-        .task(id: ticker) { await loadPrices() }
-        .task(id: ticker) { await loadAnalysis() }
-        .task(id: ticker) { await loadEvaluations() }
+        .task(id: ticker) { if display == .prices { await loadPrices() } }
+        .task(id: ticker) { if display == .research { await loadAnalysis() } }
+        .task(id: ticker) { if display == .research { await loadEvaluations() } }
     }
 
     private func loadPrices() async {

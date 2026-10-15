@@ -2,6 +2,14 @@ import XCTest
 @testable import TrisMarketLens
 
 final class StockChartAxisLabelsTests: XCTestCase {
+    func testLabelsIncludeYearForLongPeriods() {
+        XCTAssertEqual(StockChartAxisLabels.label(for: "2022-01-03", period: .all), "2022")
+        XCTAssertEqual(StockChartAxisLabels.label(for: "2026-10-01", period: .all), "2026")
+        XCTAssertEqual(StockChartAxisLabels.label(for: "2025-09-17", period: .year), "25-09")
+        XCTAssertEqual(StockChartAxisLabels.label(for: "2026-10-01", period: .quarter), "10-01")
+        XCTAssertEqual(StockChartAxisLabels.label(for: "invalid", period: .all), "invalid")
+    }
+
     func testEmptyAndSingleSession() {
         XCTAssertEqual(StockChartAxisLabels.dates(for: []), [])
         XCTAssertEqual(StockChartAxisLabels.dates(for: ["2026-10-01"]), ["2026-10-01"])
