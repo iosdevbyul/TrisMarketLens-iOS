@@ -95,7 +95,7 @@ struct OperationsAlert: Decodable, Identifiable {
 
 enum OperationsPresentation {
     static func title(_ value: String) -> String {
-        switch value {
+        return switch value {
         case "completed": "Completed"
         case "incomplete": "Incomplete"
         case "failed": "Failed"
@@ -134,7 +134,7 @@ enum OperationsPresentation {
 
     static func diagnostic(_ code: String?) -> String {
         guard let code, !code.isEmpty else { return "No diagnostic published." }
-        switch code {
+        return switch code {
         case "dart_evidence_busy": "DART evidence is temporarily busy; retry after the writer releases its lock."
         case "snapshot_pipeline_blocked": "The research snapshot reports a blocked pipeline."
         case "timestamp_and_freshness_policy_unavailable": "A verified timestamp and freshness policy are not available."
