@@ -272,6 +272,8 @@ struct BacktestingOperationsView: View {
                                 .font(.system(.footnote, design: .monospaced))
                                 .foregroundStyle(WakColor.textSecondary)
                                 .textSelection(.enabled)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Button {
                                 UIPasteboard.general.string = item.value
