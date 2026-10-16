@@ -75,6 +75,29 @@ final class HTTPEndpointContractTests: XCTestCase {
         XCTAssertEqual(ContractURLProtocol.lastRequest?.url?.path, "/api/v1/operations")
     }
 
+    func testSecurityMetadataEndpointsAndUnavailableFallback() async throws {
+        let response = """
+        {"artifact":{"version":"security_metadata_v1","securities":[{"ticker":"005930","securityName":null,"securityNameEnglish":null,"nameEvidenceReference":null,"nameStatus":"unavailable","corporationId":null,"securityType":"unknown"}]},"fingerprint":"example"}
+        """
+        let source = HTTPSecurityMetadataSource(client: try client(payload: response))
+        let values = try await source.getAll()
+        XCTAssertEqual(values.map(\.ticker), ["005930"])
+        XCTAssertEqual(ContractURLProtocol.lastRequest?.url?.path, "/api/v1/security-metadata")
+
+        let detailSource = HTTPSecurityMetadataSource(client: try client(status: 404))
+        let missing = try await detailSource.get(ticker: "005930")
+        XCTAssertNil(missing)
+        XCTAssertEqual(ContractURLProtocol.lastRequest?.url?.path, "/api/v1/security-metadata/005930")
+
+        let unavailable = HTTPSecurityMetadataSource(client: try client(status: 503))
+        do {
+            _ = try await unavailable.getAll()
+            XCTFail("503 must not be mistaken for verified metadata")
+        } catch ResearchAPIError.httpStatus(let status) {
+            XCTAssertEqual(status, 503)
+        }
+    }
+
     func test404DetailIsNilButList404Throws() async throws {
         let api = try client(status: 404)
         let stock = try await HTTPStockSource(client: api).getStock(ticker: "005930")

@@ -5,6 +5,8 @@ struct StockDetailView: View {
     let ticker: String
     let source: any StockSource
     var researchSource: any StockResearchSource = DisconnectedStockResearchSource()
+    var metadataSource: any SecurityMetadataSource = UnavailableSecurityMetadataSource()
+    @State private var metadata: SecurityMetadata?
 
     @State private var detail: StockDetail?
     @State private var activeRequestID = UUID()
@@ -21,7 +23,7 @@ struct StockDetailView: View {
             } else if let detail {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(detail.displayName)
+                        Text(StockDisplayNameResolver.resolve(ticker: detail.ticker, legacyCorporationName: detail.name, metadata: metadata, language: Locale.current.language.languageCode?.identifier ?? "en"))
                             .font(.title2.weight(.semibold))
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
@@ -78,6 +80,11 @@ struct StockDetailView: View {
                 return
             }
             detail = response
+            metadata = nil
+            if response != nil {
+                metadata = try? await metadataSource.get(ticker: ticker)
+                guard activeRequestID == requestID else { return }
+            }
             errorMessage = nil
         } catch {
             guard activeRequestID == requestID else { return }
@@ -86,6 +93,7 @@ struct StockDetailView: View {
                 return
             }
             detail = nil
+            metadata = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
         loading = false

@@ -29,7 +29,7 @@ struct RootView: View {
                 OverviewView(source: environment.project(), isDemo: environment.mode == .mock)
             } else if selection == .stocks {
                 NavigationStack {
-                    StocksView(source: environment.stocks(), isDemo: environment.mode == .mock, researchSource: environment.stockResearch())
+                    StocksView(source: environment.stocks(), isDemo: environment.mode == .mock, researchSource: environment.stockResearch(), metadataSource: environment.securityMetadata())
                 }
             } else if selection == .screener {
                 NavigationStack {

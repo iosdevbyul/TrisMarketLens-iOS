@@ -5,21 +5,30 @@ struct StocksView: View {
     private let source: any StockSource
     private let isDemo: Bool
     private let researchSource: any StockResearchSource
+    private let metadataSource: any SecurityMetadataSource
     @State private var stocks: [StockSummary] = []
+    @State private var metadataByTicker: [String: SecurityMetadata] = [:]
     @State private var activeRequestID = UUID()
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
     @State private var requestStatus = "Waiting for request"
 
-    init(source: any StockSource = MockStockSource(), isDemo: Bool = true, researchSource: any StockResearchSource = DisconnectedStockResearchSource()) {
+    init(source: any StockSource = MockStockSource(), isDemo: Bool = true, researchSource: any StockResearchSource = DisconnectedStockResearchSource(), metadataSource: any SecurityMetadataSource = UnavailableSecurityMetadataSource()) {
         self.researchSource = researchSource
+        self.metadataSource = metadataSource
         self.isDemo = isDemo
         self.source = source
     }
 
     private var filteredStocks: [StockSummary] {
-        stocks.filter { $0.matches(query) }
+        stocks.filter { stock in
+            stock.matches(query) || displayName(for: stock).localizedStandardContains(query)
+        }
+    }
+
+    private func displayName(for stock: StockSummary) -> String {
+        StockDisplayNameResolver.resolve(ticker: stock.ticker, legacyCorporationName: stock.name, metadata: metadataByTicker[stock.ticker], language: Locale.current.language.languageCode?.identifier ?? "en")
     }
 
     var body: some View {
@@ -48,10 +57,10 @@ struct StocksView: View {
                 Section("Research universe · \(filteredStocks.count) displayed") {
                     ForEach(filteredStocks) { stock in
                         NavigationLink {
-                            StockDetailView(ticker: stock.ticker, source: source, researchSource: researchSource)
+                            StockDetailView(ticker: stock.ticker, source: source, researchSource: researchSource, metadataSource: metadataSource)
                         } label: {
                             VStack(alignment: .leading, spacing: 5) {
-                                Text(stock.displayName).font(WakTypography.sectionTitle)
+                                Text(displayName(for: stock)).font(WakTypography.sectionTitle)
                                     .foregroundStyle(WakColor.textPrimary)
                                 Text("\(stock.ticker) · \(stock.market) · \(stock.sectorLabel)")
                                     .font(.caption).foregroundStyle(.secondary)
@@ -87,6 +96,13 @@ struct StocksView: View {
                 return
             }
             stocks = result
+            // Metadata is optional; failure must never hide the research universe.
+            if let records = try? await metadataSource.getAll() {
+                guard activeRequestID == requestID else { return }
+                metadataByTicker = Dictionary(records.map { ($0.ticker, $0) }, uniquingKeysWith: { first, _ in first })
+            } else {
+                metadataByTicker = [:]
+            }
             requestStatus = "Loaded \(result.count) stocks"
             #if DEBUG
             print("[Stocks] Loaded \(result.count) published stocks")
@@ -99,6 +115,7 @@ struct StocksView: View {
                 return
             }
             stocks = []
+            metadataByTicker = [:]
             errorMessage = ResearchErrorGuidance.message(for: error)
             requestStatus = "Request failed: \(String(describing: error))"
             #if DEBUG
