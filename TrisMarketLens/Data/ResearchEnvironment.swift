@@ -54,6 +54,11 @@ struct ResearchEnvironment {
         return UnavailableStockSource()
     }
 
+    func securityMetadata() -> any SecurityMetadataSource {
+        if let client { return HTTPSecurityMetadataSource(client: client) }
+        return UnavailableSecurityMetadataSource()
+    }
+
     func screener() -> any ScreenerSource {
         if let client { return HTTPScreenerSource(client: client) }
         return DisconnectedScreenerSource()
