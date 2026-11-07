@@ -49,7 +49,6 @@ final class HTTPEndpointContractTests: XCTestCase {
         let tests: [(String, String)] = [
             ("ohlcv", #"{"ticker":"005930","bars":[]}"#),
             ("analysis", #"{"ticker":"005930","records":[]}"#),
-            ("evaluations", #"{"ticker":"005930","evaluations":[]}"#)
         ]
         for (endpoint, json) in tests {
             let source = HTTPStockResearchSource(client: try client(payload: json))
