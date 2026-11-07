@@ -1,6 +1,6 @@
 # TrisMarketLens (iOS)
 
-Native SwiftUI companion to [TrisMarketLens Web](https://github.com/iosdevbyul/TrisMarketLens), backed eventually by [DonghakStockVision](https://github.com/iosdevbyul/DonghakStockVision).
+Native SwiftUI companion to [TrisMarketLens Web](https://github.com/iosdevbyul/TrisMarketLens), using the read-only research API contracts of [DonghakStockVision](https://github.com/iosdevbyul/DonghakStockVision).
 
 **Display name:** TrisMarketLens  
 **Repository:** TrisMarketLens-iOS  
@@ -19,17 +19,17 @@ open TrisMarketLens.xcodeproj
 
 The project file is generated from `project.yml` and is intentionally not committed. CI generates it on each run.
 
-## Current scope
+## Current scope (November 2026)
 
-The first milestone implements the application shell and navigation matching the **eight actual web sidebar sections**: Overview, Stocks, AI Screener, AI Analysis History, Models, Evidence, Backtesting, and Operations. Section content is explicitly placeholder-only, **not actual AI output or investment performance**.
+The native SwiftUI app provides eight navigation sections: Overview, Stocks, AI Screener, AI Analysis History, Models, Evidence, Backtesting and Operations. Existing typed sources cover approved snapshot research, stock analysis, OHLCV and Operations v1. These integrations are **not evidence** that a live publication is configured, and mock fixtures are never real research.
 
-The web has additional detail routes under Stocks, Models, Evidence and Backtesting. These belong to later milestones.
+See [the 2026-11-08 API contract audit](docs/api-contract-audit-2026-11-08.md) for the endpoint matrix, backend unsupported routes, outstanding features, and verification gates.
 
 ## Architecture and data safety
 
 - UI: SwiftUI; native navigation.
 - Source of truth: DonghakStockVision read-only research API contracts, as surfaced in the web repository.
-- Separate mock and HTTP data sources in future milestones.
+- Separate mock, disconnected and HTTP data sources; HTTP failures never fall back to mock.
 - Do not synthesize market performance or silently replace network failures with simulated research results.
 - Production/research readiness is determined by backend data, not frontend assumptions.
 - No direct PostgreSQL access or hardcoded Tailscale IP in the client.
@@ -60,7 +60,7 @@ Set the following environment variables in the Xcode scheme (Run â†’ Arguments â
 - **mock**: Debug builds only; local demonstration fixtures on Overview and Stocks. Release builds reject explicit `mock` and never default to demo fixtures.
 - **disconnected**: no sample research data on Overview or Stocks.
 - **http**: Overview, Stocks, Models, Evidence, Backtesting and Operations use typed HTTP adapters. An invalid/missing URL produces a configuration error instead of silently switching to mock data.
-- AI Screener, Analysis History and per-stock OHLCV/analysis/evaluation remain disconnected until their HTTP sources are wired in a follow-up PR.
+- AI Screener, per-stock OHLCV and stock analysis have HTTP adapters. The backend does not publish the prediction evaluations endpoint, which fails closed without a request. Analysis History availability depends on a reviewed analysis publication.
 - A configured HTTP URL does not imply the server is reachable or responses are verified. Do not enter real trading credentials in scheme variables.
 
 The app remains iOS 17+, and uses WakTrainerDesignSystem.
