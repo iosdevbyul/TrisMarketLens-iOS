@@ -77,6 +77,5 @@ struct HTTPStockResearchSource: StockResearchSource {
     // Never fabricate evaluations or probe an unsupported route.
     func getEvaluations(ticker: String) async throws -> PredictionEvaluationSnapshot {
         throw ResearchAPIError.invalidConfiguration
-
     }
 }
