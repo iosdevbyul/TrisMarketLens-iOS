@@ -59,6 +59,10 @@ struct RootView: View {
                 NavigationStack {
                     BacktestingOperationsView(page: .backtesting, source: environment.operations())
                 }
+            } else if selection == .historicalPortfolios {
+                NavigationStack {
+                    HistoricalPortfoliosView(source: environment.historicalPortfolios(), isHTTP: environment.mode == .http)
+                }
             } else if selection == .operations {
                 NavigationStack {
                     BacktestingOperationsView(page: .operations, source: environment.operations(), operationsV1Source: environment.operationsV1(), diagnostic: environment.client.map { ResearchConnectionDiagnostic(client: $0) })
