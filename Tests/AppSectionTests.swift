@@ -4,7 +4,7 @@ import XCTest
 final class AppSectionTests: XCTestCase {
     func testSectionsMatchCurrentWebNavigation() {
         XCTAssertEqual(AppSection.allCases.map(\.rawValue), [
-            "overview", "stocks", "screener", "history", "workbench",
+            "overview", "stocks", "screener", "history", "workbench", "researchPath",
             "models", "evidence", "backtesting", "operations"
         ])
     }
