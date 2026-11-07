@@ -73,22 +73,9 @@ struct HTTPStockResearchSource: StockResearchSource {
         return snapshot
     }
 
+    // The current backend does not expose /api/v1/stocks/{ticker}/evaluations.
+    // Never fabricate evaluations or probe an unsupported route.
     func getEvaluations(ticker: String) async throws -> PredictionEvaluationSnapshot {
-        let snapshot = try await client.fetch(
-            PredictionEvaluationSnapshot.self,
-            path: ["api", "v1", "stocks", ticker, "evaluations"]
-        )
-        guard snapshot.ticker == ticker, snapshot.evaluations.count <= 500 else {
-            throw ResearchAPIError.invalidPayload
-        }
-        var ids = Set<String>()
-        for item in snapshot.evaluations {
-            guard item.ticker == ticker,
-                  ids.insert(item.id).inserted,
-                  ResearchPayloadIntegrity.evaluation(item) else {
-                throw ResearchAPIError.invalidPayload
-            }
-        }
-        return snapshot
+        throw ResearchAPIError.invalidConfiguration
     }
 }
