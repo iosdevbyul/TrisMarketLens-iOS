@@ -43,6 +43,10 @@ struct RootView: View {
                 NavigationStack {
                     ResearchWorkbenchView(catalog: environment.catalog(), screener: environment.screener(), research: environment.stockResearch(), isHTTP: environment.mode == .http)
                 }
+            } else if selection == .researchPath {
+                NavigationStack {
+                    ResearchPathView(stocks: environment.stocks(), catalog: environment.catalog(), screener: environment.screener(), research: environment.stockResearch(), operations: environment.operationsV1(), isHTTP: environment.mode == .http)
+                }
             } else if selection == .models {
                 NavigationStack {
                     ResearchCatalogView(kind: .models, source: environment.catalog())
