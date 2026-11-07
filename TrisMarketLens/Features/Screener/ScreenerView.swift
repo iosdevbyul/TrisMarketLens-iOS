@@ -3,6 +3,7 @@ import WakTrainerDesignSystem
 
 struct ScreenerView: View {
     private let source: any ScreenerSource
+    private let researchSource: any StockResearchSource
     private let isConnected: Bool
     @State private var entries: [ScreenerEntry] = []
     @State private var activeRequestID = UUID()
@@ -12,7 +13,8 @@ struct ScreenerView: View {
 
     private var filteredEntries: [ScreenerEntry] { filter.apply(to: entries) }
 
-    init(source: any ScreenerSource = DisconnectedScreenerSource(), isConnected: Bool = false) {
+    init(source: any ScreenerSource = DisconnectedScreenerSource(), researchSource: any StockResearchSource = DisconnectedStockResearchSource(), isConnected: Bool = false) {
+        self.researchSource = researchSource
         self.isConnected = isConnected
         self.source = source
     }
@@ -64,6 +66,9 @@ struct ScreenerView: View {
                     ContentUnavailableView(entries.isEmpty ? "No published analyses" : "No matching analyses", systemImage: "chart.xyaxis.line", description: Text(entries.isEmpty ? "The research source has no published screener records." : "Adjust your filters to see other published analyses."))
                 } else {
                     ForEach(filteredEntries) { record in
+                        NavigationLink {
+                            ResearchObservationView(entry: record, source: researchSource)
+                        } label: {
                         WakCard {
                             VStack(alignment: .leading, spacing: WakSpacing.small) {
                                 Text(record.displayName).font(.headline).foregroundStyle(WakColor.textPrimary)
@@ -81,6 +86,7 @@ struct ScreenerView: View {
                                 Text("Data through: \(record.dataThrough)")
                                     .font(.footnote).foregroundStyle(WakColor.textSecondary)
                             }
+                        }
                         }
                     }
                     .listRowBackground(WakColor.background)

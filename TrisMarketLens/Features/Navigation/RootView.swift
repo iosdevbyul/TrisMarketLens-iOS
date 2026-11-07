@@ -33,7 +33,7 @@ struct RootView: View {
                 }
             } else if selection == .screener {
                 NavigationStack {
-                    ScreenerView(source: environment.screener(), isConnected: environment.mode == .http)
+                    ScreenerView(source: environment.screener(), researchSource: environment.stockResearch(), isConnected: environment.mode == .http)
                 }
             } else if selection == .history {
                 NavigationStack {
