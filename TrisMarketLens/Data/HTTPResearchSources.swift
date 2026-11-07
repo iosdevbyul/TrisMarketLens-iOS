@@ -55,6 +55,8 @@ struct HTTPBacktestingOperationsSource: BacktestingOperationsSource {
         }
     }
     func getOperations() async throws -> OperationsSnapshot {
-        try await client.fetch(OperationsSnapshot.self, path: ["api", "v1", "operations"])
+        // The backend exposes versioned runs/freshness/alerts, not /api/v1/operations.
+        // OperationsV1Dashboard uses HTTPOperationsV1Source independently.
+        throw ResearchAPIError.invalidConfiguration
     }
 }
