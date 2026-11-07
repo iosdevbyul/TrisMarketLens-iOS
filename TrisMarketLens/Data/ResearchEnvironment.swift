@@ -74,6 +74,11 @@ struct ResearchEnvironment {
         return DisconnectedResearchCatalogSource()
     }
 
+    func historicalPortfolios() -> any HistoricalPortfolioSource {
+        if let client { return HTTPHistoricalPortfolioSource(client: client) }
+        return UnavailableHistoricalPortfolioSource()
+    }
+
     func operationsV1() -> any OperationsV1Source {
         if let client { return HTTPOperationsV1Source(client: client) }
         return UnavailableOperationsV1Source()
