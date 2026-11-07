@@ -67,11 +67,34 @@ final class HTTPEndpointContractTests: XCTestCase {
         }
     }
 
-    func testOperationsEndpointDecodesDisconnectedPayload() async throws {
-        let json = #"{"connection":"not_connected","checkedAt":null,"latestDataThrough":null,"nextScheduledRun":null,"runs":[]}"#
-        let snapshot = try await HTTPBacktestingOperationsSource(client: client(payload: json)).getOperations()
-        XCTAssertEqual(snapshot.connection, "not_connected")
-        XCTAssertEqual(ContractURLProtocol.lastRequest?.url?.path, "/api/v1/operations")
+    func testUnpublishedRoutesFailClosedWithoutHTTP() async throws {
+        ContractURLProtocol.lastRequest = nil
+        let api = try client()
+        do {
+            _ = try await HTTPBacktestingOperationsSource(client: api).getOperations()
+            XCTFail("Legacy operations endpoint is not supported")
+        } catch ResearchAPIError.invalidConfiguration {}
+        XCTAssertNil(ContractURLProtocol.lastRequest)
+
+        do {
+            _ = try await HTTPStockResearchSource(client: api).getEvaluations(ticker: "005930")
+            XCTFail("Prediction evaluations endpoint is not published")
+        } catch ResearchAPIError.invalidConfiguration {}
+        XCTAssertNil(ContractURLProtocol.lastRequest)
+    }
+
+    func test503AndInvalidJSONAreNotEmptyScreenerResults() async throws {
+        do {
+            _ = try await HTTPScreenerSource(client: client(status: 503)).getScreener()
+            XCTFail("503 must remain unavailable")
+        } catch ResearchAPIError.httpStatus(let status) {
+            XCTAssertEqual(status, 503)
+        }
+
+        do {
+            _ = try await HTTPScreenerSource(client: client(payload: #"{bad json"#)).getScreener()
+            XCTFail("Malformed JSON must remain an error")
+        } catch ResearchAPIError.invalidPayload {}
     }
 
     func testSecurityMetadataEndpointsAndUnavailableFallback() async throws {
