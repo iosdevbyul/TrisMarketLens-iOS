@@ -61,8 +61,7 @@ final class HTTPEndpointContractTests: XCTestCase {
                 let result = try await source.getAnalysis(ticker: "005930")
                 XCTAssertTrue(result.records.isEmpty)
             default:
-                let result = try await source.getEvaluations(ticker: "005930")
-                XCTAssertTrue(result.evaluations.isEmpty)
+                XCTFail("Unexpected endpoint")
             }
             XCTAssertEqual(ContractURLProtocol.lastRequest?.url?.path, "/api/v1/stocks/005930/\(endpoint)")
         }
