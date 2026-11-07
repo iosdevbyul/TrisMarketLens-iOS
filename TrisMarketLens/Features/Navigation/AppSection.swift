@@ -6,6 +6,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case screener
     case history
     case workbench
+    case researchPath
     case models
     case evidence
     case backtesting
@@ -20,6 +21,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .screener: "AI Screener"
         case .history: "AI Analysis History"
         case .workbench: "Research Workbench"
+        case .researchPath: "Research Path"
         case .models: "Models"
         case .evidence: "Evidence"
         case .backtesting: "Backtesting"
@@ -34,6 +36,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .screener: "line.3.horizontal.decrease.circle"
         case .history: "clock.arrow.circlepath"
         case .workbench: "point.3.connected.trianglepath.dotted"
+        case .researchPath: "point.topleft.down.curvedto.point.bottomright.up"
         case .models: "brain"
         case .evidence: "checkmark.shield"
         case .backtesting: "chart.bar.xaxis"
