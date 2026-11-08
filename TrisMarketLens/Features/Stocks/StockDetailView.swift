@@ -67,35 +67,34 @@ struct StockDetailView: View {
         .task(id: ticker) { await reload() }
     }
 
+    @MainActor
     private func reload() async {
         let requestID = UUID()
         activeRequestID = requestID
-        guard activeRequestID == requestID, !Task.isCancelled else { return }
+        guard !Task.isCancelled else { return }
         loading = true
+        detail = nil
+        metadata = nil
+        errorMessage = nil
         do {
             let response = try await source.getStock(ticker: ticker)
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                loading = false
-                return
-            }
+            guard activeRequestID == requestID, !Task.isCancelled else { return }
             detail = response
-            metadata = nil
             if response != nil {
-                metadata = try? await metadataSource.get(ticker: ticker)
-                guard activeRequestID == requestID else { return }
+                // Metadata is optional. The original ticker response remains
+                // valid if this supplementary lookup fails.
+                let result = try? await metadataSource.get(ticker: ticker)
+                guard activeRequestID == requestID, !Task.isCancelled else { return }
+                metadata = result
             }
-            errorMessage = nil
         } catch {
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                loading = false
-                return
-            }
+            guard activeRequestID == requestID, !Task.isCancelled else { return }
             detail = nil
             metadata = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
-        loading = false
+        if activeRequestID == requestID, !Task.isCancelled {
+            loading = false
+        }
     }
 }

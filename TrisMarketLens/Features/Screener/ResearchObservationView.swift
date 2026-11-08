@@ -8,6 +8,7 @@ struct ResearchObservationView: View {
     let source: any StockResearchSource
 
     @State private var record: StockAnalysisRecord?
+    @State private var requests = ResearchRequestGeneration()
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var missingPublication = false
@@ -42,22 +43,24 @@ struct ResearchObservationView: View {
 
     @MainActor
     private func reload() async {
+        let token = requests.begin()
+        guard !Task.isCancelled else { isLoading = false; return }
         isLoading = true
         record = nil
         missingPublication = false
         errorMessage = nil
         do {
             let snapshot = try await source.getAnalysis(ticker: entry.ticker)
-            guard !Task.isCancelled else { isLoading = false; return }
+            guard requests.accepts(token, cancelled: Task.isCancelled) else { return }
             if let match = ResearchObservationMatch.resolve(entry, in: snapshot) {
                 record = match
             } else {
                 missingPublication = true
             }
         } catch {
-            guard !Task.isCancelled else { isLoading = false; return }
+            guard requests.accepts(token, cancelled: Task.isCancelled) else { return }
             errorMessage = ResearchErrorGuidance.message(for: error)
         }
-        isLoading = false
+        if requests.accepts(token, cancelled: Task.isCancelled) { isLoading = false }
     }
 }
