@@ -22,6 +22,10 @@ struct StockAnalysisDetailView: View {
                     .foregroundStyle(WakColor.textSecondary)
                 LabeledContent("Data through", value: record.dataThrough)
                 LabeledContent("Analyzed at", value: record.analyzedAt)
+                LabeledContent("Chronology", value: AnalysisPublicationChronology.assess(record).label)
+                Text("Chronology is based on published timestamps only; it does not verify point-in-time source availability.")
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
                 if let score = record.score {
                     LabeledContent("Model score", value: score.formatted(.number.precision(.fractionLength(4))))
                 } else {
