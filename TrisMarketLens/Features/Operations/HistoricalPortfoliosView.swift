@@ -67,7 +67,7 @@ struct HistoricalPortfoliosView: View {
                         }
                     }
                     if (2...5).contains(selectedReportIDs.count) {
-                        NavigationLink("Compare selected reports (\\(selectedReportIDs.count))") {
+                        NavigationLink("Compare selected reports (\(selectedReportIDs.count))") {
                             HistoricalPortfolioComparisonView(selectedIDs: selectedReportIDs, source: source)
                         }
                     }
