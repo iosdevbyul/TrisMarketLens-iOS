@@ -6,7 +6,7 @@ struct ScreenerView: View {
     private let researchSource: any StockResearchSource
     private let isConnected: Bool
     @State private var entries: [ScreenerEntry] = []
-    @State private var activeRequestID = UUID()
+    @State private var requests = ResearchRequestGeneration()
     @State private var filter = ScreenerFilter()
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -103,30 +103,23 @@ struct ScreenerView: View {
     }
 
     private func reload() async {
-        let requestID = UUID()
-        activeRequestID = requestID
+        let requestID = requests.begin()
         guard !Task.isCancelled else { return }
         isLoading = true
+        entries = []
+        errorMessage = nil
         do {
             let result = try await source.getScreener()
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                isLoading = false
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             entries = result.entries
             errorMessage = nil
         } catch {
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                isLoading = false
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             entries = []
             errorMessage = ResearchErrorGuidance.message(for: error)
             recoveryMessage = ResearchErrorGuidance.recovery(for: error)
         }
-        isLoading = false
+        if requests.accepts(requestID, cancelled: Task.isCancelled) { isLoading = false }
     }
 }
 
