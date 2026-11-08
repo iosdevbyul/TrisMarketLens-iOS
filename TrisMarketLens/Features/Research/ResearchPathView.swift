@@ -22,6 +22,17 @@ struct ResearchPathView: View {
     @State private var universe: [StockSummary]?
     @State private var screenerEntries: [ScreenerEntry]?
     @State private var tickerAnalysis: StockAnalysisSnapshot?
+    @State private var operationalEvidence: OperationalMarketSummary?
+    @State private var publishedEvidence: [EvidenceLayerSummary]?
+    @State private var publishedModels: [ModelSummary]?
+    @State private var recordedRuns: OperationsRunsPage?
+
+    private var publicationGate: ResearchPublicationGate {
+        ResearchPublicationGate.evaluate(
+            isHTTP: isHTTP, observations: operationalEvidence,
+            evidenceLayers: publishedEvidence, models: publishedModels, runs: recordedRuns
+        )
+    }
 
     private var ticker: String? { ResearchWorkbenchEvidence.normalizedTicker(tickerInput) }
 
@@ -55,6 +66,20 @@ struct ResearchPathView: View {
                     .disabled(ticker == nil || isTickerLoading)
                 if isLoading || isTickerLoading { ProgressView("Checking published sources") }
                 Button("Reload source overview") { Task { await reload() } }
+            }
+
+            Section("Research publication eligibility") {
+                LabeledContent("Gate", value: publicationGate.status.label)
+                Text("These independent read-only sources do not provide a reviewed end-to-end approval. No collected row is automatically promoted to model input or trade evidence.")
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
+                ForEach(publicationGate.checks) { check in
+                    DisclosureGroup(check.label + " · " + check.outcome.label) {
+                        Text(check.explanation)
+                            .font(.footnote)
+                            .foregroundStyle(WakColor.textSecondary)
+                    }
+                }
             }
 
             ForEach(ResearchPathStage.allCases) { stage in
@@ -158,11 +183,16 @@ struct ResearchPathView: View {
         universe = nil
         screenerEntries = nil
         tickerAnalysis = nil
+        operationalEvidence = nil
+        publishedEvidence = nil
+        publishedModels = nil
+        recordedRuns = nil
 
         do {
             let observed = try await operationalMarket.getSummary()
             try observed.validate()
             guard id == requestID, !Task.isCancelled else { return }
+            operationalEvidence = observed
             snapshot.operationalObservationCount = observed.observationCount
             snapshot.operationalTickerCount = observed.tickerCount
             snapshot.operationalFirstDate = observed.firstTradingDate
@@ -184,6 +214,7 @@ struct ResearchPathView: View {
         do {
             let result = try await catalog.getModels()
             guard id == requestID, !Task.isCancelled else { return }
+            publishedModels = result
             snapshot.modelCount = result.count
         } catch {
             guard id == requestID else { return }
@@ -192,6 +223,7 @@ struct ResearchPathView: View {
         do {
             let result = try await catalog.getEvidenceLayers()
             guard id == requestID, !Task.isCancelled else { return }
+            publishedEvidence = result
             snapshot.evidenceCount = result.count
             snapshot.hasEvidenceBlockers = result.contains { $0.state.title.lowercased() != "verified" }
         } catch {
@@ -217,6 +249,7 @@ struct ResearchPathView: View {
         do {
             let result = try await operations.getRuns(offset: 0, limit: OperationsContract.pageLimit)
             guard id == requestID, !Task.isCancelled else { return }
+            recordedRuns = result
             snapshot.operationsCount = result.items.count
         } catch {
             guard id == requestID else { return }
