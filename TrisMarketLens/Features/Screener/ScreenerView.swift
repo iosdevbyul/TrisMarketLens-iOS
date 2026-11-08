@@ -10,6 +10,7 @@ struct ScreenerView: View {
     @State private var filter = ScreenerFilter()
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var recoveryMessage = ""
 
     private var filteredEntries: [ScreenerEntry] { filter.apply(to: entries) }
 
@@ -60,8 +61,8 @@ struct ScreenerView: View {
                 if isLoading {
                     ProgressView("Loading screener")
                 } else if let errorMessage {
-                    Button("Retry") { Task { await reload() } }
-                    ContentUnavailableView("Screener unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                    ResearchFailurePanel(title: "Screener unavailable", message: errorMessage,
+                                         recovery: recoveryMessage, retry: { Task { await reload() } })
                 } else if filteredEntries.isEmpty {
                     ContentUnavailableView(entries.isEmpty ? "No published analyses" : "No matching analyses", systemImage: "chart.xyaxis.line", description: Text(entries.isEmpty ? "The research source has no published screener records." : "Adjust your filters to see other published analyses."))
                 } else {
@@ -123,6 +124,7 @@ struct ScreenerView: View {
             }
             entries = []
             errorMessage = ResearchErrorGuidance.message(for: error)
+            recoveryMessage = ResearchErrorGuidance.recovery(for: error)
         }
         isLoading = false
     }
