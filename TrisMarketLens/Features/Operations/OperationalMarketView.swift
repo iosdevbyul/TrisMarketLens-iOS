@@ -13,6 +13,7 @@ struct OperationalMarketView: View {
     @State private var error: String?
     @State private var summaryError: String?
     @State private var requestID = UUID()
+    @State private var summaryRequests = ResearchRequestGeneration()
 
     var body: some View {
         List {
@@ -84,11 +85,16 @@ struct OperationalMarketView: View {
     }
 
     @MainActor private func loadSummary() async {
+        let token = summaryRequests.begin()
+        guard !Task.isCancelled else { return }
         summaryError = nil
         summary = nil
         do {
-            summary = try await source.getSummary()
+            let result = try await source.getSummary()
+            guard summaryRequests.accepts(token, cancelled: Task.isCancelled) else { return }
+            summary = result
         } catch {
+            guard summaryRequests.accepts(token, cancelled: Task.isCancelled) else { return }
             summaryError = ResearchErrorGuidance.message(for: error)
         }
     }
@@ -124,10 +130,10 @@ struct OperationalMarketView: View {
             catalog.append(contentsOf: result.items)
             total = result.total
         } catch {
-            guard requestID == id else { return }
+            guard requestID == id, !Task.isCancelled else { return }
             self.error = ResearchErrorGuidance.message(for: error)
         }
-        if requestID == id { loading = false }
+        if requestID == id, !Task.isCancelled { loading = false }
     }
 }
 
@@ -139,6 +145,7 @@ private struct OperationalMarketTickerView: View {
     @State private var bars: [OhlcvBar] = []
     @State private var loading = true
     @State private var error: String?
+    @State private var barRequests = ResearchRequestGeneration()
 
     var body: some View {
         List {
@@ -189,17 +196,19 @@ private struct OperationalMarketTickerView: View {
     }
 
     @MainActor private func reload() async {
+        let token = barRequests.begin()
+        guard !Task.isCancelled else { return }
         loading = true
         error = nil
         bars = []
         do {
             let value = try await source.getBars(ticker: ticker)
-            guard !Task.isCancelled else { loading = false; return }
+            guard barRequests.accepts(token, cancelled: Task.isCancelled) else { return }
             bars = value.bars
         } catch {
-            guard !Task.isCancelled else { loading = false; return }
+            guard barRequests.accepts(token, cancelled: Task.isCancelled) else { return }
             self.error = ResearchErrorGuidance.message(for: error)
         }
-        loading = false
+        if barRequests.accepts(token, cancelled: Task.isCancelled) { loading = false }
     }
 }
