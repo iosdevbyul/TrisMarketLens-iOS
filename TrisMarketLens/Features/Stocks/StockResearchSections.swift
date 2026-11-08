@@ -9,6 +9,8 @@ struct StockResearchSections: View {
     let source: any StockResearchSource
     var display: StockResearchDisplay = .research
 
+    @ScaledMetric(relativeTo: .body) private var priceChartHeight: CGFloat = 220
+    @ScaledMetric(relativeTo: .body) private var volumeChartHeight: CGFloat = 100
     @State private var bars: [OhlcvBar] = []
     @State private var selectedPeriod: StockChartPeriod = .quarter
     @State private var selectedSession: String?
@@ -74,8 +76,9 @@ struct StockResearchSections: View {
                                     Text(period.rawValue).tag(period)
                                 }
                             }
-                            .pickerStyle(.segmented)
+                            .pickerStyle(.menu)
                             .accessibilityLabel("Price chart period")
+                            .accessibilityHint("Changes the number of published trading sessions shown.")
                             .onChange(of: selectedPeriod) { _, _ in selectedSession = nil }
                             if let session = selectedBar {
                                 HStack(alignment: .firstTextBaseline) {
@@ -151,8 +154,10 @@ struct StockResearchSections: View {
                             .chartYScale(domain: priceDomain ?? 0...1)
                             .chartXSelection(value: $selectedSession)
                             .chartXAxis(.hidden)
-                            .frame(height: 220)
+                            .frame(height: priceChartHeight)
+                            .accessibilityElement(children: .ignore)
                             .accessibilityLabel(displayMode == .closingLine ? "Historical closing price chart" : "Historical OHLCV chart")
+                            .accessibilityValue(ResearchChartAccessibility.prices(visibleBars))
                             dateRangeLabels
                             Text("Touch or drag across the chart to inspect a trading session.")
                                 .fixedSize(horizontal: false, vertical: true)
@@ -207,7 +212,10 @@ struct StockResearchSections: View {
                                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                                 }
                             }
-                            .frame(height: 100)
+                            .frame(height: volumeChartHeight)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Historical trading volume chart")
+                            .accessibilityValue(ResearchChartAccessibility.volume(visibleBars))
                             .chartYAxis {
                                 AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
                                     AxisGridLine()
