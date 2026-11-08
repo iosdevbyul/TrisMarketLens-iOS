@@ -176,6 +176,26 @@ struct BacktestingOperationsView: View {
             WakCard {
                 VStack(alignment: .leading, spacing: WakSpacing.small) {
                     WakSectionHeader("Research endpoint readiness")
+                    let preflight = ResearchReleasePreflight.assess(
+                        endpointResults, isHTTP: diagnostic != nil && connection.state == .reachable
+                    )
+                    LabeledContent("Required endpoint status", value: preflight.state.label)
+                    if preflight.checkedCount > 0 {
+                        LabeledContent("Routes responding", value: "\(preflight.availableCount) / \(preflight.checkedCount)")
+                        if !preflight.requiredUnavailable.isEmpty {
+                            DisclosureGroup("Required routes not responding (\(preflight.requiredUnavailable.count))") {
+                                ForEach(preflight.requiredUnavailable, id: \.self) { path in
+                                    Text(path)
+                                        .font(.caption.monospaced())
+                                        .textSelection(.enabled)
+                                }
+                            }
+                        }
+                    }
+                    Text("A successful preflight confirms only decodable read-only endpoints; no raw KRX custody, approved research publication, physical device QA or signing is certified.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
+
                     if endpointResults.isEmpty {
                         Text(checkingConnection ? "Checking endpoint availability…" : "No endpoint diagnostics available.")
                             .font(.footnote)
