@@ -54,6 +54,26 @@ struct ResearchEndpointDiagnostic {
         results.append(await probe("Operations alerts", path: "/api/v1/operations/alerts") {
             _ = try await operations.getAlerts(offset: 0, limit: OperationsContract.pageLimit)
         })
+        results.append(await probe("Operational summary", path: "/api/v1/operational/summary") {
+            _ = try await HTTPOperationalMarketSource(client: client).getSummary()
+        })
+        results.append(await probe("Operational stocks", path: "/api/v1/operational/stocks") {
+            _ = try await HTTPOperationalMarketSource(client: client).getStocks(offset: 0)
+        })
+        // This archive reader is deliberately local-only. Remote configurations
+        // must be flagged as restricted without sending a request.
+        if ["localhost", "127.0.0.1", "::1"].contains(client.baseURL.host?.lowercased() ?? ""),
+           client.baseURL.scheme?.lowercased() == "http" {
+            results.append(await probe("Historical portfolio archive", path: "/api/v1/research/historical-portfolios") {
+                _ = try await HTTPHistoricalPortfolioSource(client: client).getPage(offset: 0)
+            })
+        } else {
+            results.append(.init(
+                name: "Historical portfolio archive",
+                path: "/api/v1/research/historical-portfolios", state: .notConfigured,
+                detail: "Restricted to operator-approved HTTP loopback; no remote request sent."
+            ))
+        }
         results.append(.init(name: "Prediction evaluations", path: "/api/v1/stocks/{ticker}/evaluations",
                              state: .missing, detail: "Not defined by the current backend FastAPI router."))
         return results
@@ -70,6 +90,9 @@ struct ResearchEndpointDiagnostic {
         } catch ResearchAPIError.httpStatus(404) {
             return .init(name: name, path: path, state: .missing,
                          detail: "Endpoint returned 404.")
+        } catch ResearchAPIError.invalidConfiguration {
+            return .init(name: name, path: path, state: .notConfigured,
+                         detail: "This reader is not enabled for the configured source.")
         } catch OperationsContractError.unsupportedSchema {
             return .init(name: name, path: path, state: .incompatible,
                          detail: "Unsupported Operations API schema version.")
