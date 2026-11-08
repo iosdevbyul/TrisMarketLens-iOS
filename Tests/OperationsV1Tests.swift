@@ -77,7 +77,7 @@ final class OperationsV1Tests: XCTestCase {
         do {
             _ = try await source.getFreshness()
             XCTFail("Expected first freshness attempt to fail")
-        } catch ResearchAPIError.transport {}
+        } catch ResearchAPIError.timeout {}
         let retry = try await source.getFreshness()
         XCTAssertEqual(retry.items.first?.sourceId, "market_snapshot")
         let alertPage = try await source.getAlerts(offset: 0, limit: 25)

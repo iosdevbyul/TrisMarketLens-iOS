@@ -12,6 +12,7 @@ struct StocksView: View {
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
+    @State private var recoveryMessage = ""
     @State private var requestStatus = "Waiting for request"
 
     init(source: any StockSource = MockStockSource(), isDemo: Bool = true, researchSource: any StockResearchSource = DisconnectedStockResearchSource(), metadataSource: any SecurityMetadataSource = UnavailableSecurityMetadataSource()) {
@@ -46,11 +47,11 @@ struct StocksView: View {
                         .font(.footnote)
                         .foregroundStyle(WakColor.textSecondary)
                     #endif
-                    Button("Retry loading") { Task { await reload() } }
+
                 }
             } else if let errorMessage {
-                Button("Retry") { Task { await reload() } }
-                ContentUnavailableView("Stocks unavailable", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                ResearchFailurePanel(title: "Stocks unavailable", message: errorMessage,
+                                     recovery: recoveryMessage, retry: { Task { await reload() } })
             } else if filteredStocks.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
@@ -117,6 +118,7 @@ struct StocksView: View {
             stocks = []
             metadataByTicker = [:]
             errorMessage = ResearchErrorGuidance.message(for: error)
+            recoveryMessage = ResearchErrorGuidance.recovery(for: error)
             requestStatus = "Request failed: \(String(describing: error))"
             #if DEBUG
             print("[Stocks] Request failed: \(String(reflecting: error))")

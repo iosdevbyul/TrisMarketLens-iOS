@@ -30,14 +30,50 @@ final class ResearchFailureRetryIntegrationTests: XCTestCase {
         do {
             _ = try await client.fetch(ProjectStatus.self, path: ["api", "v1", "project", "status"])
             XCTFail("Expected initial transport error")
-        } catch ResearchAPIError.transport {
-            XCTAssertTrue(ResearchErrorGuidance.message(for: ResearchAPIError.transport).contains("connection"))
+        } catch ResearchAPIError.timeout {
+            XCTAssertTrue(ResearchErrorGuidance.message(for: ResearchAPIError.timeout).contains("timed out"))
         }
 
         let recovered = try await client.fetch(ProjectStatus.self, path: ["api", "v1", "project", "status"])
         XCTAssertEqual(recovered.productName, "Recovered")
         let count = await script.callCount
         XCTAssertEqual(count, 2, "Retry must be explicit, not an implicit second request")
+    }
+
+    func testOfflineFailureRecoversOnlyAfterExplicitRetry() async throws {
+        let script = FailureScriptClient(outcomes: [.offline, .success])
+        let client = try ResearchAPIClient(
+            baseURL: URL(string: "https://example.test")!, networkClient: script
+        )
+        do {
+            _ = try await client.fetch(ProjectStatus.self, path: ["api", "v1", "project", "status"])
+            XCTFail("Offline request must not show cached or mock data")
+        } catch ResearchAPIError.offline {
+            XCTAssertTrue(ResearchErrorGuidance.recovery(for: ResearchAPIError.offline).contains("Restore"))
+        }
+        let before = await script.callCount
+        XCTAssertEqual(before, 1, "No automatic second request")
+        let recovered = try await client.fetch(ProjectStatus.self, path: ["api", "v1", "project", "status"])
+        XCTAssertEqual(recovered.productName, "Recovered")
+        let after = await script.callCount
+        XCTAssertEqual(after, 2)
+    }
+
+    func testPostSharesTimeoutClassificationWithoutSilentReplay() async throws {
+        let script = FailureScriptClient(outcomes: [.timeout])
+        let client = try ResearchAPIClient(
+            baseURL: URL(string: "https://example.test")!, networkClient: script
+        )
+        do {
+            _ = try await client.post(
+                ProjectStatus.self,
+                path: ["api", "v1", "research", "historical-portfolios", "compare"],
+                request: ["reportIds": ["synthetic-fixture"]]
+            )
+            XCTFail("Expected explicit timeout")
+        } catch ResearchAPIError.timeout {}
+        let count = await script.callCount
+        XCTAssertEqual(count, 1)
     }
 
     func testMalformedResponseDoesNotBecomePublishedData() async throws {
@@ -72,6 +108,7 @@ private actor FailureScriptClient: NetworkClient {
     enum Outcome {
         case http(Int)
         case timeout
+        case offline
         case invalidPayload
         case success
     }
@@ -91,6 +128,8 @@ private actor FailureScriptClient: NetworkClient {
             throw NetworkError.serverError(status)
         case .timeout:
             throw NetworkError.unknown(URLError(.timedOut))
+        case .offline:
+            throw NetworkError.unknown(URLError(.notConnectedToInternet))
         case .invalidPayload:
             throw NetworkError.decodingFailed(
                 DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "fixture"))

@@ -12,6 +12,8 @@ enum ResearchAPIError: Error, Equatable {
     case invalidResponse
     case httpStatus(Int)
     case transport
+    case timeout
+    case offline
     case invalidPayload
 }
 
@@ -73,7 +75,7 @@ struct ResearchAPIClient {
             case .decodingFailed: throw ResearchAPIError.invalidPayload
             case .invalidResponse: throw ResearchAPIError.invalidResponse
             case .invalidURL: throw ResearchAPIError.invalidConfiguration
-            case .unknown: throw ResearchAPIError.transport
+            case .unknown(let underlying): throw Self.mapTransportError(underlying)
             }
         } catch {
             throw ResearchAPIError.transport
@@ -99,12 +101,26 @@ struct ResearchAPIClient {
                 #if DEBUG
                 print("[ResearchAPI] Transport error for \(endpoint.path): \(String(reflecting: underlying))")
                 #endif
-                throw ResearchAPIError.transport
+                throw Self.mapTransportError(underlying)
             }
         } catch {
             throw ResearchAPIError.transport
         }
     }
+
+    /// Preserve recoverable network failures without automatically replaying requests.
+    /// Only the user-initiated Retry triggers another request.
+    private static func mapTransportError(_ error: Error) -> ResearchAPIError {
+        let ns = error as NSError
+        guard ns.domain == NSURLErrorDomain else { return .transport }
+        switch ns.code {
+        case NSURLErrorTimedOut: return .timeout
+        case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost,
+             NSURLErrorDataNotAllowed: return .offline
+        default: return .transport
+        }
+    }
+
 }
 
 private struct ResearchEndpoint: Endpoint {
