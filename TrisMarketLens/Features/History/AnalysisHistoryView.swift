@@ -5,6 +5,7 @@ import WakTrainerDesignSystem
 struct AnalysisHistoryView: View {
     private let source: any ScreenerSource
     private let isConnected: Bool
+    @ScaledMetric(relativeTo: .body) private var chartHeight: CGFloat = 220
     @State private var history: [DailyAnalysisSummary] = []
     @State private var selectedRange: AnalysisHistoryRange = .recent30
     private var visibleHistory: [DailyAnalysisSummary] { selectedRange.apply(to: history) }
@@ -50,6 +51,8 @@ struct AnalysisHistoryView: View {
                                     Text(range.rawValue).tag(range)
                                 }
                             }
+                            .pickerStyle(.menu)
+                            .accessibilityHint("Choose how many published research dates appear in the chart.")
                             Text("Showing \(visibleHistory.count) of \(history.count) observed dates. Missing dates are not assumed to have zero activity.")
                                 .font(.footnote)
                                 .foregroundStyle(WakColor.textSecondary)
@@ -60,7 +63,10 @@ struct AnalysisHistoryView: View {
                                 )
                                 .foregroundStyle(WakColor.primary)
                             }
-                            .frame(height: 220)
+                            .frame(height: chartHeight)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Analysis activity chart")
+                            .accessibilityValue(ResearchChartAccessibility.history(visibleHistory))
                             ForEach(visibleHistory.reversed()) { day in
                                 VStack(alignment: .leading, spacing: WakSpacing.xSmall) {
                                     Text(day.date).font(.headline)
@@ -71,6 +77,8 @@ struct AnalysisHistoryView: View {
                                         .font(.footnote)
                                 }
                                 .foregroundStyle(WakColor.textSecondary)
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(ResearchChartAccessibility.day(day))
                                 Divider()
                             }
                         }
