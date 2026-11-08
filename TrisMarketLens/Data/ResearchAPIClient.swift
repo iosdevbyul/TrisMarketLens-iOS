@@ -49,6 +49,37 @@ struct ResearchAPIClient {
         self.networkClient = networkClient
     }
 
+    /// A restricted, JSON-body read-only operation; callers own authorization and local-only checks.
+    func post<Request: Encodable, Response: Decodable>(
+        _ responseType: Response.Type, path: [String], request: Request
+    ) async throws -> Response {
+        guard !path.isEmpty,
+              path.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") }) else {
+            throw ResearchAPIError.invalidConfiguration
+        }
+        let body: Data
+        do {
+            body = try JSONEncoder().encode(request)
+        } catch {
+            throw ResearchAPIError.invalidPayload
+        }
+        guard body.count <= 4096 else { throw ResearchAPIError.invalidConfiguration }
+        let endpoint = ResearchPostEndpoint(path: path.joined(separator: "/"), body: body)
+        do {
+            return try await networkClient.request(endpoint: endpoint, responseType: responseType)
+        } catch let error as NetworkError {
+            switch error {
+            case .serverError(let status): throw ResearchAPIError.httpStatus(status)
+            case .decodingFailed: throw ResearchAPIError.invalidPayload
+            case .invalidResponse: throw ResearchAPIError.invalidResponse
+            case .invalidURL: throw ResearchAPIError.invalidConfiguration
+            case .unknown: throw ResearchAPIError.transport
+            }
+        } catch {
+            throw ResearchAPIError.transport
+        }
+    }
+
     func fetch<T: Decodable>(_ type: T.Type, path: [String], queryItems: [URLQueryItem] = []) async throws -> T {
         guard !path.isEmpty,
               path.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") }) else {
@@ -81,4 +112,12 @@ private struct ResearchEndpoint: Endpoint {
     let queryItems: [URLQueryItem]
     let method: HTTPMethod = .get
     let headers = ["Accept": "application/json"]
+}
+
+private struct ResearchPostEndpoint: Endpoint {
+    let path: String
+    let body: Data?
+    let method: HTTPMethod = .post
+    let headers = ["Accept": "application/json", "Content-Type": "application/json"]
+    let queryItems: [URLQueryItem] = []
 }
