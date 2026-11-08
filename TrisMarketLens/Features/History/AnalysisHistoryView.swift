@@ -12,6 +12,7 @@ struct AnalysisHistoryView: View {
     @State private var activeRequestID = UUID()
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var recoveryMessage = ""
 
     init(source: any ScreenerSource = DisconnectedScreenerSource(), isConnected: Bool = false) {
         self.isConnected = isConnected
@@ -36,9 +37,8 @@ struct AnalysisHistoryView: View {
                         if isLoading {
                             ProgressView("Loading analysis history")
                         } else if let errorMessage {
-                            Button("Retry") { Task { await reload() } }
-                            Label(errorMessage, systemImage: "exclamationmark.triangle")
-                                .foregroundStyle(WakColor.destructive)
+                            ResearchFailurePanel(title: "Analysis history unavailable", message: errorMessage,
+                                                 recovery: recoveryMessage, retry: { Task { await reload() } })
                         } else if history.isEmpty {
                             ContentUnavailableView(
                                 "No observed analysis dates",
@@ -117,6 +117,7 @@ struct AnalysisHistoryView: View {
             }
             history = []
             errorMessage = ResearchErrorGuidance.message(for: error)
+            recoveryMessage = ResearchErrorGuidance.recovery(for: error)
         }
         isLoading = false
     }
