@@ -5,7 +5,7 @@ struct OverviewView: View {
     private let source: any ProjectStatusSource
     private let isDemo: Bool
     @State private var status: ProjectStatus?
-    @State private var activeRequestID = UUID()
+    @State private var requests = ResearchRequestGeneration()
     @State private var errorMessage: String?
     @State private var recoveryMessage = ""
     @State private var loading = true
@@ -76,22 +76,18 @@ struct OverviewView: View {
     }
 
     private func reload() async {
-        let requestID = UUID()
-        activeRequestID = requestID
+        let requestID = requests.begin()
         guard !Task.isCancelled else { return }
         loading = true
         status = nil
         errorMessage = nil
         do {
             let result = try await source.getProjectStatus()
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             status = result
             errorMessage = nil
         } catch {
-            guard activeRequestID == requestID else { return }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             if Task.isCancelled {
                 return
             }
@@ -99,7 +95,7 @@ struct OverviewView: View {
             errorMessage = ResearchErrorGuidance.message(for: error)
             recoveryMessage = ResearchErrorGuidance.recovery(for: error)
         }
-        if activeRequestID == requestID { loading = false }
+        if requests.accepts(requestID, cancelled: Task.isCancelled) { loading = false }
     }
 
     private func checkpointSection(_ title: String, items: [ResearchCheckpoint]) -> some View {
