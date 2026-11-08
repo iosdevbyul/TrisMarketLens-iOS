@@ -154,12 +154,12 @@ final class HTTPEndpointContractTests: XCTestCase {
         } catch ResearchAPIError.invalidPayload {}
     }
 
-    func testTimeoutSurfacesAsTransportFailure() async throws {
+    func testTimeoutSurfacesAsSpecificTimeoutFailure() async throws {
         let api = try client(error: URLError(.timedOut))
         do {
             _ = try await HTTPProjectStatusSource(client: api).getProjectStatus()
             XCTFail("Timeout must not fall back to mock")
-        } catch ResearchAPIError.transport {}
+        } catch ResearchAPIError.timeout {}
     }
 
     func testRejectsUnsafePathSegmentsBeforeRequest() async throws {
