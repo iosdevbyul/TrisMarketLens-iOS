@@ -7,6 +7,8 @@ struct OverviewView: View {
     @State private var status: ProjectStatus?
     @State private var activeRequestID = UUID()
     @State private var errorMessage: String?
+    @State private var recoveryMessage = ""
+    @State private var loading = true
 
     init(source: any ProjectStatusSource = MockProjectStatusSource(), isDemo: Bool = true) {
         self.isDemo = isDemo
@@ -28,7 +30,9 @@ struct OverviewView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if let status {
+                if loading {
+                    ProgressView("Loading research status")
+                } else if let status {
                     Text(status.sourceLabel)
                         .font(.headline)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
@@ -52,14 +56,14 @@ struct OverviewView: View {
                     checkpointSection("Research readiness", items: status.evidence)
                     checkpointSection("Historical baseline", items: status.baseline)
                 } else if let errorMessage {
-                    Button("Retry") { Task { await reload() } }
-                    ContentUnavailableView(
-                        "Research status unavailable",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(errorMessage)
+                    ResearchFailurePanel(
+                        title: "Research status unavailable",
+                        message: errorMessage,
+                        recovery: recoveryMessage,
+                        retry: { Task { await reload() } }
                     )
                 } else {
-                    ProgressView("Loading research status")
+                    Text("No research status publication is available.")
                 }
             }
             .frame(maxWidth: 760, alignment: .leading)
@@ -75,6 +79,9 @@ struct OverviewView: View {
         let requestID = UUID()
         activeRequestID = requestID
         guard !Task.isCancelled else { return }
+        loading = true
+        status = nil
+        errorMessage = nil
         do {
             let result = try await source.getProjectStatus()
             guard activeRequestID == requestID else { return }
@@ -90,7 +97,9 @@ struct OverviewView: View {
             }
             status = nil
             errorMessage = ResearchErrorGuidance.message(for: error)
+            recoveryMessage = ResearchErrorGuidance.recovery(for: error)
         }
+        if activeRequestID == requestID { loading = false }
     }
 
     private func checkpointSection(_ title: String, items: [ResearchCheckpoint]) -> some View {
