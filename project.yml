@@ -66,4 +66,11 @@ schemes:
     test:
       targets:
         - TrisMarketLensTests
+  TrisMarketLensUI:
+    build:
+      targets:
+        TrisMarketLens: all
+        TrisMarketLensUITests: all
+    test:
+      targets:
         - TrisMarketLensUITests
