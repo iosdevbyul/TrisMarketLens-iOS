@@ -48,8 +48,9 @@ final class TrisMarketLensLayoutUITests: XCTestCase {
         XCTAssertTrue(stocks.waitForExistence(timeout: 15))
         stocks.tap()
 
-        XCTAssertTrue(app.staticTexts["Stocks unavailable"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.buttons["Retry request"].exists)
+        let retry = app.buttons["Retry request"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 20), "Stocks must expose a manual retry when the source is disconnected. UI: \(app.debugDescription)")
+        XCTAssertTrue(app.staticTexts["Configured research source"].exists)
         XCTAssertFalse(app.staticTexts["Synthetic demo data — not live market coverage"].exists)
     }
 
