@@ -8,7 +8,7 @@ struct StocksView: View {
     private let metadataSource: any SecurityMetadataSource
     @State private var stocks: [StockSummary] = []
     @State private var metadataByTicker: [String: SecurityMetadata] = [:]
-    @State private var activeRequestID = UUID()
+    @State private var requests = ResearchRequestGeneration()
     @State private var query = ""
     @State private var loading = true
     @State private var errorMessage: String?
@@ -82,26 +82,24 @@ struct StocksView: View {
 
     @MainActor
     private func reload() async {
-        let requestID = UUID()
-        activeRequestID = requestID
+        let requestID = requests.begin()
+        guard !Task.isCancelled else { return }
         loading = true
+        stocks = []
+        metadataByTicker = [:]
         errorMessage = nil
         requestStatus = "Request started"
 
         do {
             let result = try await source.getStocks()
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                requestStatus = "Request canceled"
-                loading = false
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             stocks = result
             // Metadata is optional; failure must never hide the research universe.
             if let records = try? await metadataSource.getAll() {
-                guard activeRequestID == requestID else { return }
+                guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
                 metadataByTicker = Dictionary(records.map { ($0.ticker, $0) }, uniquingKeysWith: { first, _ in first })
             } else {
+                guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
                 metadataByTicker = [:]
             }
             requestStatus = "Loaded \(result.count) stocks"
@@ -109,12 +107,7 @@ struct StocksView: View {
             print("[Stocks] Loaded \(result.count) published stocks")
             #endif
         } catch {
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                requestStatus = "Request canceled"
-                loading = false
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             stocks = []
             metadataByTicker = [:]
             errorMessage = ResearchErrorGuidance.message(for: error)
@@ -124,6 +117,6 @@ struct StocksView: View {
             print("[Stocks] Request failed: \(String(reflecting: error))")
             #endif
         }
-        loading = false
+        if requests.accepts(requestID, cancelled: Task.isCancelled) { loading = false }
     }
 }

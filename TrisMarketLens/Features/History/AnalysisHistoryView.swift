@@ -9,7 +9,7 @@ struct AnalysisHistoryView: View {
     @State private var history: [DailyAnalysisSummary] = []
     @State private var selectedRange: AnalysisHistoryRange = .recent30
     private var visibleHistory: [DailyAnalysisSummary] { selectedRange.apply(to: history) }
-    @State private var activeRequestID = UUID()
+    @State private var requests = ResearchRequestGeneration()
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var recoveryMessage = ""
@@ -95,31 +95,24 @@ struct AnalysisHistoryView: View {
     }
 
     private func reload() async {
-        let requestID = UUID()
-        activeRequestID = requestID
+        let requestID = requests.begin()
         guard !Task.isCancelled else { return }
         isLoading = true
+        history = []
+        errorMessage = nil
         do {
             let snapshot = try await source.getScreener()
             let result = DailyAnalysisSummary.summarize(snapshot.entries)
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                isLoading = false
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             history = result
             errorMessage = nil
         } catch {
-            guard activeRequestID == requestID else { return }
-            if Task.isCancelled {
-                isLoading = false
-                return
-            }
+            guard requests.accepts(requestID, cancelled: Task.isCancelled) else { return }
             history = []
             errorMessage = ResearchErrorGuidance.message(for: error)
             recoveryMessage = ResearchErrorGuidance.recovery(for: error)
         }
-        isLoading = false
+        if requests.accepts(requestID, cancelled: Task.isCancelled) { isLoading = false }
     }
 }
 
