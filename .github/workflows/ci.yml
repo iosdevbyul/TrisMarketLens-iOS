@@ -76,3 +76,11 @@ jobs:
             -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
             ENABLE_TESTABILITY=YES \
             CODE_SIGNING_ALLOWED=NO
+      - name: Run application launch UI smoke tests
+        run: |
+          xcodebuild test \
+            -project TrisMarketLens.xcodeproj \
+            -scheme TrisMarketLensUI \
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO
