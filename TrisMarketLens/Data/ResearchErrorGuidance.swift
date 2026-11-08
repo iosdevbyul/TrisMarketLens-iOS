@@ -14,6 +14,10 @@ enum ResearchErrorGuidance {
             return "The research response could not be validated. No unverified results were displayed."
         case .transport:
             return "Unable to reach the research server. Check the connection and try again."
+        case .timeout:
+            return "The research request timed out. Check the connection, then retry manually."
+        case .offline:
+            return "Your network connection is offline or was interrupted. Reconnect, then retry manually."
         case .httpStatus(let code):
             switch code {
             case 401: return "Research access requires authentication."
