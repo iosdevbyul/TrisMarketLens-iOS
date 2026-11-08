@@ -43,6 +43,16 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  TrisMarketLensUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: TrisMarketLens
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   TrisMarketLens:
     build:
@@ -56,3 +66,4 @@ schemes:
     test:
       targets:
         - TrisMarketLensTests
+        - TrisMarketLensUITests
