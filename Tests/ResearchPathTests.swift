@@ -16,6 +16,19 @@ final class ResearchPathTests: XCTestCase {
         XCTAssertEqual(snapshot.status(for: .operations, isHTTP: true, hasTicker: true), .observed)
     }
 
+    func testPinnedArchiveCountsNeverImplyInvestmentApproval() {
+        var snapshot = ResearchPathSnapshot()
+        XCTAssertEqual(snapshot.status(for: .portfolio, isHTTP: true, hasTicker: false), .unavailable)
+        snapshot.publishedPortfolioCount = 0
+        XCTAssertEqual(snapshot.status(for: .portfolio, isHTTP: true, hasTicker: false), .empty)
+        snapshot.publishedPortfolioCount = 3
+        XCTAssertEqual(snapshot.status(for: .portfolio, isHTTP: true, hasTicker: false), .observed)
+        snapshot.errorStages.insert(.portfolio)
+        XCTAssertEqual(snapshot.status(for: .portfolio, isHTTP: true, hasTicker: false), .unavailable)
+        XCTAssertEqual(snapshot.status(for: .portfolio, isHTTP: false, hasTicker: false), .demo)
+        XCTAssertTrue(ResearchPathStage.portfolio.limitation.contains("do not prove brokerage performance"))
+    }
+
     func testDemoCannotCertifyAnySource() {
         let snapshot = ResearchPathSnapshot(stockCount: 4, modelCount: 2, analysisCount: 1, evidenceCount: 2, operationsCount: 1)
         for stage in ResearchPathStage.allCases {
