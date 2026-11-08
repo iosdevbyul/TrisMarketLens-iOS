@@ -142,6 +142,19 @@ private struct HistoricalPortfolioDetailView: View {
                     LabeledContent("Decisions", value: "\(detail.decisionCount)")
                     LabeledContent("Fills", value: "\(detail.fillCount)")
                 }
+                Section("Recorded security decisions") {
+                    Text("Archived opportunities and simulated fills retain source evidence; not executed brokerage trades.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
+                    NavigationLink("All recorded trade opportunities") {
+                        HistoricalPortfolioTimelineView(reportID: detail.reportId, ticker: nil, source: source)
+                    }
+                    ForEach(detail.tickers, id: \.self) { ticker in
+                        NavigationLink(ticker + " decision history") {
+                            HistoricalPortfolioTimelineView(reportID: detail.reportId, ticker: ticker, source: source)
+                        }
+                    }
+                }
                 Section("Immutable provenance") {
                     LabeledContent("Report ID", value: detail.reportId)
                     LabeledContent("Archive transport hash", value: detail.archiveTransportHash)
