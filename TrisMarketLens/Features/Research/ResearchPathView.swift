@@ -8,6 +8,7 @@ struct ResearchPathView: View {
     let screener: any ScreenerSource
     let research: any StockResearchSource
     let operations: any OperationsV1Source
+    let historicalPortfolios: any HistoricalPortfolioSource
     let isHTTP: Bool
 
     @State private var tickerInput = ""
@@ -103,7 +104,14 @@ struct ResearchPathView: View {
                             ResearchCatalogView(kind: .evidence, source: catalog)
                         }
                     case .portfolio:
-                        Text("Historical portfolio publication needs a reviewed, versioned iOS API adapter.")
+                        if let count = snapshot.publishedPortfolioCount {
+                            LabeledContent("Approved archive publications", value: "\(count)")
+                        }
+                        Text("Historical research is operator-pinned and loopback-only; publication is not model or trade approval.")
+                            .font(.footnote)
+                        NavigationLink("Browse historical portfolio reports") {
+                            HistoricalPortfoliosView(source: historicalPortfolios, isHTTP: isHTTP)
+                        }
                     case .operations:
                         if let count = snapshot.operationsCount {
                             LabeledContent("Runs in first page", value: "\(count)")
@@ -171,6 +179,14 @@ struct ResearchPathView: View {
         } catch {
             guard id == requestID else { return }
             record(error, for: .analysis)
+        }
+        do {
+            let result = try await historicalPortfolios.getPage(offset: 0)
+            guard id == requestID, !Task.isCancelled else { return }
+            snapshot.publishedPortfolioCount = result.total
+        } catch {
+            guard id == requestID else { return }
+            record(error, for: .portfolio)
         }
         do {
             let result = try await operations.getRuns(offset: 0, limit: OperationsContract.pageLimit)
