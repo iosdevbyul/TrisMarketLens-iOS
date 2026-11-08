@@ -7,7 +7,7 @@ final class ResearchSourceIdentityAuditTests: XCTestCase {
         try JSONDecoder().decode(type, from: Data(json.utf8))
     }
 
-    private let hash = String(repeating: "a", count: 64)
+    private let sampleSHA256 = String(repeating: "a", count: 64)
 
     private func evidenceSummary() throws -> EvidenceLayerSummary {
         try decode(EvidenceLayerSummary.self, """
@@ -28,11 +28,11 @@ final class ResearchSourceIdentityAuditTests: XCTestCase {
 
     func testPublishedEvidenceFingerprintNeverMeansAuthenticatedSource() throws {
         let result = ResearchSourceIdentityAudit.evidence(
-            summary: try evidenceSummary(), detail: try evidenceDetail(hash)
+            summary: try evidenceSummary(), detail: try evidenceDetail(sampleSHA256)
         )
         XCTAssertEqual(result.state, .present)
         XCTAssertTrue(result.reason.contains("not obtained or hashed original bytes"))
-        XCTAssertEqual(result.publishedFingerprint, hash)
+        XCTAssertEqual(result.publishedFingerprint, sampleSHA256)
     }
 
     func testMissingAndMalformedEvidenceFingerprintRemainUnavailable() throws {
@@ -50,7 +50,7 @@ final class ResearchSourceIdentityAuditTests: XCTestCase {
         {"id":"dart","title":"Calendar","state":"in_progress",
         "summary":"Coverage pending","sourceLabel":"KRX",
         "metrics":[],"findings":[],"blocker":null,
-        "fingerprint":"\(hash)","sourceScope":"Published research snapshot"}
+        "fingerprint":"\(sampleSHA256)","sourceScope":"Published research snapshot"}
         """)
         let result = ResearchSourceIdentityAudit.evidence(summary: source, detail: wrong)
         XCTAssertEqual(result.state, .inconsistent)
@@ -76,7 +76,7 @@ final class ResearchSourceIdentityAuditTests: XCTestCase {
         "selectionMeanAveragePrecision":0.32,"selectionStdAveragePrecision":0.04,
         "validation":{"sampleCount":20,"precision":0.5,"recall":0.4,"f1":0.44,"averagePrecision":0.3,"brier":0.2},
         "oos":{"sampleCount":20,"precision":0.5,"recall":0.4,"f1":0.44,"averagePrecision":0.4,"brier":0.2},
-        "provenance":{"artifactSha256":"\(hash)","featureSet":"study_v1","label":"direction",
+        "provenance":{"artifactSha256":"\(sampleSHA256)","featureSet":"study_v1","label":"direction",
         "horizonSessions":5,"threshold":0.5,"maxLeafNodes":10,"learningRate":0.1,
         "maxIterations":40,"minSamplesLeaf":5,"l2Regularization":0.0,"maxBins":255,
         "classWeight":"balanced","earlyStopping":false,"randomSeed":7}}
@@ -85,14 +85,14 @@ final class ResearchSourceIdentityAuditTests: XCTestCase {
         let result = ResearchSourceIdentityAudit.model(summary: source, detail: detail)
         XCTAssertEqual(result.state, .present)
         XCTAssertTrue(result.reason.contains("not been independently verified"))
-        let malformed = modelJSON.replacingOccurrences(of: hash, with: "not-a-hash")
+        let malformed = modelJSON.replacingOccurrences(of: sampleSHA256, with: "not-a-sampleSHA256")
         let invalid = try decode(ModelDetail.self, malformed)
         XCTAssertEqual(ResearchSourceIdentityAudit.model(summary: source, detail: invalid).state, .inconsistent)
     }
 
     func testSHA256ValidationIsStrict() {
-        XCTAssertTrue(ResearchSourceIdentityAudit.validSHA256(hash))
-        XCTAssertFalse(ResearchSourceIdentityAudit.validSHA256(hash.uppercased()))
+        XCTAssertTrue(ResearchSourceIdentityAudit.validSHA256(sampleSHA256))
+        XCTAssertFalse(ResearchSourceIdentityAudit.validSHA256(sampleSHA256.uppercased()))
         XCTAssertFalse(ResearchSourceIdentityAudit.validSHA256(String(repeating: "a", count: 63)))
         XCTAssertFalse(ResearchSourceIdentityAudit.validSHA256(String(repeating: "g", count: 64)))
     }
