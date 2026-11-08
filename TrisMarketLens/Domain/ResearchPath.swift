@@ -57,15 +57,19 @@ struct ResearchPathSnapshot {
     var evidenceCount: Int?
     var hasEvidenceBlockers = false
     var operationsCount: Int?
+    var publishedPortfolioCount: Int?
     var errorStages: Set<ResearchPathStage> = []
 
     func status(for stage: ResearchPathStage, isHTTP: Bool, hasTicker: Bool) -> ResearchPathStatus {
         guard isHTTP else { return .demo }
         if errorStages.contains(stage) { return .unavailable }
         switch stage {
-        case .collection, .portfolio:
-            // These require separately reviewed backend publication contracts.
+        case .collection:
+            // Operational market publication is handled independently.
             return .unavailable
+        case .portfolio:
+            // This count describes operator-pinned historical research, not brokerage eligibility.
+            return Self.countState(publishedPortfolioCount)
         case .identity:
             guard let stockCount else { return .unavailable }
             guard stockCount > 0 else { return .empty }
