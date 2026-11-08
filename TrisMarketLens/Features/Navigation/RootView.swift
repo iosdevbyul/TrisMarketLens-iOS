@@ -67,6 +67,15 @@ struct RootView: View {
                 NavigationStack {
                     BacktestingOperationsView(page: .operations, source: environment.operations(), operationsV1Source: environment.operationsV1(), diagnostic: environment.client.map { ResearchConnectionDiagnostic(client: $0) })
                 }
+            } else if selection == .operationsTrace {
+                NavigationStack {
+                    OperationsEvidenceTraceView(
+                        operations: environment.operationsV1(),
+                        screener: environment.screener(),
+                        catalog: environment.catalog(),
+                        isHTTP: environment.mode == .http
+                    )
+                }
             } else if let selection {
                 SectionPlaceholderView(section: selection)
             }
