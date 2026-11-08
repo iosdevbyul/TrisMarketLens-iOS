@@ -245,6 +245,9 @@ struct StockResearchSections: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(record.modelId).font(.headline)
                                         Text("\(record.direction.capitalized) · \(record.validation.capitalized) · \(record.dataThrough)")
+                                        Text(AnalysisPublicationChronology.assess(record).label)
+                                            .font(.caption)
+                                            .foregroundStyle(AnalysisPublicationChronology.assess(record) == .consistent ? WakColor.textSecondary : WakColor.destructive)
                                         if let score = record.score {
                                             Text("Model score: \(score.formatted(.number.precision(.fractionLength(4))))")
                                         }
