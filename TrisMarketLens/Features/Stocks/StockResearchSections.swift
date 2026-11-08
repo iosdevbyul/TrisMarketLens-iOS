@@ -25,6 +25,9 @@ struct StockResearchSections: View {
     @State private var evaluationsError: String?
 
     private var visibleBars: [OhlcvBar] { selectedPeriod.filter(bars) }
+    private var structurallyLinkedEvaluations: [PredictionEvaluation] {
+        EvaluationPublicationIntegrity.visible(evaluations, analyses: analyses)
+    }
 
     private var displayMode: StockChartDisplayMode { .mode(sessionCount: visibleBars.count) }
 
@@ -240,7 +243,7 @@ struct StockResearchSections: View {
                         } else {
                             ForEach(analyses) { record in
                                 NavigationLink {
-                                    StockAnalysisDetailView(record: record, evaluations: record.matchingEvaluations(in: evaluations), evaluationUnavailable: evaluationsLoading || evaluationsError != nil)
+                                    StockAnalysisDetailView(record: record, evaluations: record.matchingEvaluations(in: structurallyLinkedEvaluations), evaluationUnavailable: evaluationsLoading || evaluationsError != nil || analysisLoading || analysisError != nil)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(record.modelId).font(.headline)
@@ -271,19 +274,37 @@ struct StockResearchSections: View {
                             Button("Retry evaluations") { Task { await loadEvaluations() } }
                         } else if evaluations.isEmpty {
                             emptyMessage("No evaluated predictions available.")
+                        } else if analysisLoading || analysisError != nil {
+                            emptyMessage("Analysis source must be available before any evaluation is shown.")
                         } else {
-                            ForEach(evaluations) { evaluation in
+                            let excluded = evaluations.count - structurallyLinkedEvaluations.count
+                            if excluded > 0 {
+                                Label("\(excluded) unlinked or inconsistent evaluation records withheld.", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(WakColor.destructive)
+                            }
+                            if structurallyLinkedEvaluations.isEmpty {
+                                emptyMessage("No structurally linked evaluation is available.")
+                            }
+                            ForEach(structurallyLinkedEvaluations) { evaluation in
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(evaluation.analysisId).font(.headline)
-                                    Text("Verdict: \(evaluation.verdict.capitalized)")
+                                    Text(EvaluationPublicationIntegrity.assess(evaluation, against: analyses).label)
+                                        .font(.caption)
+                                        .foregroundStyle(WakColor.textSecondary)
                                     Text("Reference: \(evaluation.referenceDate) · Horizon: \(evaluation.horizonSessions) sessions")
-                                    if let result = evaluation.realizedReturn {
-                                        Text("Realized return: \((result * 100).formatted(.number.precision(.fractionLength(2))))%")
+                                    if EvaluationPublicationIntegrity.assess(evaluation, against: analyses) == .structurallyLinked {
+                                        Text("Published verdict: \(evaluation.verdict.capitalized)")
+                                        if let result = evaluation.realizedReturn {
+                                            Text("Published return (unverified): \((result * 100).formatted(.number.precision(.fractionLength(2))))%")
+                                        }
                                     }
                                 }
                                 .foregroundStyle(WakColor.textPrimary)
                                 Divider()
                             }
+                            Text("No published evaluation is independently certified as live performance.")
+                                .font(.footnote)
+                                .foregroundStyle(WakColor.textSecondary)
                         }
                     }
                 }

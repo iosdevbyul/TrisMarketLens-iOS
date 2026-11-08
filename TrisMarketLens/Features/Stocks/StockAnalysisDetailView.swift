@@ -6,6 +6,10 @@ struct StockAnalysisDetailView: View {
     let evaluations: [PredictionEvaluation]
     let evaluationUnavailable: Bool
 
+    private var validatedEvaluations: [PredictionEvaluation] {
+        EvaluationPublicationIntegrity.visible(evaluations, analyses: [record])
+    }
+
     var body: some View {
         List {
             Section("Analysis identity") {
@@ -36,15 +40,20 @@ struct StockAnalysisDetailView: View {
                 if evaluationUnavailable {
                     Text("Evaluation service unavailable. No evaluation status is inferred.")
                         .foregroundStyle(WakColor.textSecondary)
-                } else if evaluations.isEmpty {
+                } else if validatedEvaluations.isEmpty {
                     Text("No published evaluation is available for this analysis.")
                         .foregroundStyle(WakColor.textSecondary)
                 } else {
-                    ForEach(evaluations) { evaluation in
+                    if validatedEvaluations.count < evaluations.count {
+                        Text("Unlinked or inconsistent evaluations are withheld.")
+                            .foregroundStyle(WakColor.destructive)
+                    }
+                    ForEach(validatedEvaluations) { evaluation in
                         VStack(alignment: .leading, spacing: WakSpacing.small) {
                             LabeledContent("Evaluation ID", value: evaluation.id)
                             LabeledContent("Linked analysis ID", value: evaluation.analysisId)
-                            LabeledContent("Verdict", value: evaluation.verdict.capitalized)
+                            LabeledContent("Integrity", value: EvaluationPublicationIntegrity.assess(evaluation, against: [record]).label)
+                            LabeledContent("Published verdict", value: evaluation.verdict.capitalized)
                             LabeledContent("Horizon", value: "\(evaluation.horizonSessions) sessions")
                             LabeledContent("Reference date", value: evaluation.referenceDate)
                             if let referencePrice = evaluation.referencePrice {
@@ -60,8 +69,8 @@ struct StockAnalysisDetailView: View {
                             if let evaluatedAt = evaluation.evaluatedAt {
                                 LabeledContent("Evaluated at", value: evaluatedAt)
                             }
-                            if let realizedReturn = evaluation.realizedReturn {
-                                LabeledContent("Realized return", value: (realizedReturn * 100).formatted(.number.precision(.fractionLength(2))) + "%")
+                            if EvaluationPublicationIntegrity.assess(evaluation, against: [record]) == .structurallyLinked, let realizedReturn = evaluation.realizedReturn {
+                                LabeledContent("Published return (unverified)", value: (realizedReturn * 100).formatted(.number.precision(.fractionLength(2))) + "%")
                             } else {
                                 LabeledContent("Realized return", value: "Not published")
                             }
