@@ -125,7 +125,7 @@ struct OperationalMarketView: View {
             total = result.total
         } catch {
             guard requestID == id else { return }
-            error = ResearchErrorGuidance.message(for: error)
+            self.error = ResearchErrorGuidance.message(for: error)
         }
         if requestID == id { loading = false }
     }
