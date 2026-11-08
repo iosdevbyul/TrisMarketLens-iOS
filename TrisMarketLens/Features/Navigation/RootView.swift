@@ -45,7 +45,7 @@ struct RootView: View {
                 }
             } else if selection == .researchPath {
                 NavigationStack {
-                    ResearchPathView(stocks: environment.stocks(), catalog: environment.catalog(), screener: environment.screener(), research: environment.stockResearch(), operations: environment.operationsV1(), isHTTP: environment.mode == .http)
+                    ResearchPathView(stocks: environment.stocks(), catalog: environment.catalog(), screener: environment.screener(), research: environment.stockResearch(), operations: environment.operationsV1(), historicalPortfolios: environment.historicalPortfolios(), isHTTP: environment.mode == .http)
                 }
             } else if selection == .models {
                 NavigationStack {
