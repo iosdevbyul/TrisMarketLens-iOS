@@ -9,6 +9,7 @@ struct ResearchPathView: View {
     let research: any StockResearchSource
     let operations: any OperationsV1Source
     let historicalPortfolios: any HistoricalPortfolioSource
+    let operationalMarket: any OperationalMarketSource
     let isHTTP: Bool
 
     @State private var tickerInput = ""
@@ -65,7 +66,19 @@ struct ResearchPathView: View {
                     }
                     switch stage {
                     case .collection:
-                        Text("Separate operational snapshot publication not yet connected in iOS.")
+                        if let count = snapshot.operationalObservationCount {
+                            LabeledContent("Observed daily bars", value: count.formatted())
+                            LabeledContent("Observed tickers", value: (snapshot.operationalTickerCount ?? 0).formatted())
+                            LabeledContent("First observed date", value: snapshot.operationalFirstDate ?? "Unavailable")
+                            LabeledContent("Last observed date", value: snapshot.operationalLastDate ?? "Unavailable")
+                            LabeledContent("Evidence", value: snapshot.operationalEvidenceStatus ?? "Unavailable")
+                        }
+                        Text("Snapshot SHA and original provider custody proof are not exposed by this endpoint; independent research approval remains unavailable.")
+                            .font(.footnote)
+                            .foregroundStyle(WakColor.textSecondary)
+                        NavigationLink("Inspect collected operational observations") {
+                            OperationalMarketView(source: operationalMarket, isHTTP: isHTTP)
+                        }
                     case .identity:
                         if let stockCount = snapshot.stockCount {
                             LabeledContent("Research universe records", value: "\(stockCount)")
@@ -146,6 +159,19 @@ struct ResearchPathView: View {
         screenerEntries = nil
         tickerAnalysis = nil
 
+        do {
+            let observed = try await operationalMarket.getSummary()
+            try observed.validate()
+            guard id == requestID, !Task.isCancelled else { return }
+            snapshot.operationalObservationCount = observed.observationCount
+            snapshot.operationalTickerCount = observed.tickerCount
+            snapshot.operationalFirstDate = observed.firstTradingDate
+            snapshot.operationalLastDate = observed.lastTradingDate
+            snapshot.operationalEvidenceStatus = observed.evidenceStatus
+        } catch {
+            guard id == requestID else { return }
+            record(error, for: .collection)
+        }
         do {
             let result = try await stocks.getStocks()
             guard id == requestID, !Task.isCancelled else { return }

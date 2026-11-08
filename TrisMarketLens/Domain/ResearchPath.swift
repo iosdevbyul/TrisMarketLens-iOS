@@ -58,6 +58,11 @@ struct ResearchPathSnapshot {
     var hasEvidenceBlockers = false
     var operationsCount: Int?
     var publishedPortfolioCount: Int?
+    var operationalObservationCount: Int?
+    var operationalTickerCount: Int?
+    var operationalFirstDate: String?
+    var operationalLastDate: String?
+    var operationalEvidenceStatus: String?
     var errorStages: Set<ResearchPathStage> = []
 
     func status(for stage: ResearchPathStage, isHTTP: Bool, hasTicker: Bool) -> ResearchPathStatus {
@@ -65,8 +70,9 @@ struct ResearchPathSnapshot {
         if errorStages.contains(stage) { return .unavailable }
         switch stage {
         case .collection:
-            // Operational market publication is handled independently.
-            return .unavailable
+            // Observations in a pinned operational copy are never independently approved research.
+            guard operationalEvidenceStatus == "unreviewed" else { return .unavailable }
+            return Self.countState(operationalObservationCount)
         case .portfolio:
             // This count describes operator-pinned historical research, not brokerage eligibility.
             return Self.countState(publishedPortfolioCount)
