@@ -21,6 +21,7 @@ struct RootView: View {
                 ForEach(AppSection.allCases) { section in
                     Label(section.title, systemImage: section.symbol)
                         .tag(section)
+                        .accessibilityIdentifier("navigation.\(section.rawValue)")
                 }
             }
             .navigationTitle("TrisMarketLens")
