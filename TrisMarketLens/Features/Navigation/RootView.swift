@@ -67,6 +67,10 @@ struct RootView: View {
                 NavigationStack {
                     BacktestingOperationsView(page: .operations, source: environment.operations(), operationsV1Source: environment.operationsV1(), diagnostic: environment.client.map { ResearchConnectionDiagnostic(client: $0) })
                 }
+            } else if selection == .operationalMarket {
+                NavigationStack {
+                    OperationalMarketView(source: environment.operationalMarket(), isHTTP: environment.mode == .http)
+                }
             } else if selection == .operationsTrace {
                 NavigationStack {
                     OperationsEvidenceTraceView(
