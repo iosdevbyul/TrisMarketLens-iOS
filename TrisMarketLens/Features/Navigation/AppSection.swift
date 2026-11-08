@@ -10,6 +10,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case models
     case evidence
     case backtesting
+    case historicalPortfolios
     case operations
 
     var id: String { rawValue }
@@ -25,6 +26,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .models: "Models"
         case .evidence: "Evidence"
         case .backtesting: "Backtesting"
+        case .historicalPortfolios: "Historical Portfolios"
         case .operations: "Operations"
         }
     }
@@ -40,6 +42,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .models: "brain"
         case .evidence: "checkmark.shield"
         case .backtesting: "chart.bar.xaxis"
+        case .historicalPortfolios: "archivebox"
         case .operations: "server.rack"
         }
     }
