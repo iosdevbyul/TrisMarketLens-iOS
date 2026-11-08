@@ -68,6 +68,15 @@ struct ResearchPathView: View {
                 Button("Reload source overview") { Task { await reload() } }
             }
 
+            Section("Published source identity review") {
+                NavigationLink("Inspect evidence fingerprints and model artifact hashes") {
+                    ResearchSourceIdentityAuditView(catalog: catalog, isHTTP: isHTTP)
+                }
+                Text("Identifier consistency can be assessed; approved raw KRX capture lineage cannot be established from these read-only projections.")
+                    .font(.footnote)
+                    .foregroundStyle(WakColor.textSecondary)
+            }
+
             Section("Research publication eligibility") {
                 LabeledContent("Gate", value: publicationGate.status.label)
                 Text("These independent read-only sources do not provide a reviewed end-to-end approval. No collected row is automatically promoted to model input or trade evidence.")
