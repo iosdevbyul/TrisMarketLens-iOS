@@ -10,12 +10,16 @@ final class ResearchEndpointDiagnosticTests: XCTestCase {
             networkClient: EndpointFixtureClient()
         )
         let results = await ResearchEndpointDiagnostic(client: api).check()
-        XCTAssertEqual(results.count, 10)
+        XCTAssertEqual(results.count, 13)
         XCTAssertEqual(results.first?.state, .notConfigured)
         XCTAssertEqual(results.first?.path, "/api/v1/project/status")
         XCTAssertEqual(results.last?.state, .missing)
         XCTAssertEqual(results.last?.path, "/api/v1/stocks/{ticker}/evaluations")
         XCTAssertFalse(results.contains { $0.state == .available })
+        XCTAssertEqual(results.first(where: { $0.path == "/api/v1/operational/summary" })?.state, .notConfigured)
+        XCTAssertEqual(results.first(where: { $0.path == "/api/v1/operational/stocks" })?.state, .notConfigured)
+        XCTAssertEqual(results.first(where: { $0.path == "/api/v1/research/historical-portfolios" })?.state, .notConfigured)
+        XCTAssertTrue(results.first(where: { $0.path == "/api/v1/research/historical-portfolios" })?.detail.contains("no remote request") == true)
     }
 }
 
