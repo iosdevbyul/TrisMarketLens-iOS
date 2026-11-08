@@ -6,6 +6,7 @@ struct HistoricalPortfoliosView: View {
     let isHTTP: Bool
 
     @State private var reports: [HistoricalPortfolioItem] = []
+    @State private var selectedReportIDs: [String] = []
     @State private var offset = 0
     @State private var total = 0
     @State private var loading = true
@@ -37,7 +38,20 @@ struct HistoricalPortfoliosView: View {
                     Text("Showing \(reports.count) of \(total) authorized reports")
                         .font(.footnote)
                         .foregroundStyle(WakColor.textSecondary)
+                    Text("Select 2–5 distinct approved reports to compare source values, not performance rankings.")
+                        .font(.footnote)
+                        .foregroundStyle(WakColor.textSecondary)
                     ForEach(reports) { report in
+                        Toggle("Select " + String(report.reportId.prefix(12)) + "…", isOn: Binding(
+                            get: { selectedReportIDs.contains(report.reportId) },
+                            set: { selected in
+                                if selected && selectedReportIDs.count < 5 {
+                                    selectedReportIDs.append(report.reportId)
+                                } else if !selected {
+                                    selectedReportIDs.removeAll { $0 == report.reportId }
+                                }
+                            }
+                        ))
                         NavigationLink {
                             HistoricalPortfolioDetailView(report: report, source: source)
                         } label: {
@@ -50,6 +64,11 @@ struct HistoricalPortfoliosView: View {
                                     .font(.caption.monospaced())
                             }
                             .foregroundStyle(WakColor.textSecondary)
+                        }
+                    }
+                    if (2...5).contains(selectedReportIDs.count) {
+                        NavigationLink("Compare selected reports (\(selectedReportIDs.count))") {
+                            HistoricalPortfolioComparisonView(selectedIDs: selectedReportIDs, source: source)
                         }
                     }
                     if reports.count < total {
@@ -69,6 +88,7 @@ struct HistoricalPortfoliosView: View {
         let id = UUID()
         requestID = id
         reports = []
+        selectedReportIDs = []
         total = 0
         offset = 0
         errorMessage = nil

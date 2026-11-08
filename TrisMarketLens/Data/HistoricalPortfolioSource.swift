@@ -2,6 +2,7 @@ import Foundation
 
 protocol HistoricalPortfolioSource {
     func getPage(offset: Int) async throws -> HistoricalPortfolioPage
+    func compare(reportIDs: [String]) async throws -> HistoricalPortfolioComparison
     func getSummary(reportID: String) async throws -> HistoricalPortfolioSummary
     func getTrades(reportID: String, ticker: String?, offset: Int) async throws -> HistoricalPortfolioTradesPage
     func getTicker(reportID: String, ticker: String, offset: Int) async throws -> HistoricalPortfolioTickerPage
@@ -19,6 +20,18 @@ struct HTTPHistoricalPortfolioSource: HistoricalPortfolioSource {
               ["localhost", "127.0.0.1", "::1"].contains(host) else {
             throw ResearchAPIError.invalidConfiguration
         }
+    }
+
+    func compare(reportIDs: [String]) async throws -> HistoricalPortfolioComparison {
+        try guardLocal()
+        try HistoricalComparisonContract.validateSelection(reportIDs)
+        let response = try await client.post(
+            HistoricalPortfolioComparison.self,
+            path: ["api", "v1", "research", "historical-portfolios", "compare"],
+            request: HistoricalComparisonRequest(reportIds: reportIDs)
+        )
+        try response.validate(selected: reportIDs)
+        return response
     }
 
     func getPage(offset: Int) async throws -> HistoricalPortfolioPage {
@@ -93,6 +106,9 @@ struct HTTPHistoricalPortfolioSource: HistoricalPortfolioSource {
 }
 
 struct UnavailableHistoricalPortfolioSource: HistoricalPortfolioSource {
+    func compare(reportIDs: [String]) async throws -> HistoricalPortfolioComparison {
+        throw ResearchAPIError.invalidConfiguration
+    }
     func getPage(offset: Int) async throws -> HistoricalPortfolioPage {
         throw ResearchAPIError.invalidConfiguration
     }
@@ -106,4 +122,8 @@ struct UnavailableHistoricalPortfolioSource: HistoricalPortfolioSource {
         throw ResearchAPIError.invalidConfiguration
     }
 
+}
+
+private struct HistoricalComparisonRequest: Encodable {
+    let reportIds: [String]
 }
