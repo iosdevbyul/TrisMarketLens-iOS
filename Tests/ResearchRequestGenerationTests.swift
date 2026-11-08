@@ -29,6 +29,44 @@ final class ResearchRequestGenerationTests: XCTestCase {
         XCTAssertEqual(visibleResult, "latest response")
     }
 
+    func testReloadClearsPreviousStateBeforeNewResponse() {
+        var gate = ResearchRequestGeneration()
+        var shownRecords = ["old published record"]
+        var loading = false
+        let first = gate.begin()
+        loading = true
+        shownRecords = []
+        XCTAssertTrue(loading)
+        XCTAssertTrue(shownRecords.isEmpty)
+        let second = gate.begin()
+        // An older response is not allowed to repopulate a refreshed screen.
+        if gate.accepts(first) {
+            shownRecords = ["old response"]
+            loading = false
+        }
+        XCTAssertTrue(loading)
+        XCTAssertTrue(shownRecords.isEmpty)
+        if gate.accepts(second) {
+            shownRecords = ["fresh response"]
+            loading = false
+        }
+        XCTAssertFalse(loading)
+        XCTAssertEqual(shownRecords, ["fresh response"])
+    }
+
+    func testCancelledRequestCannotResetNewerLoadingIndicator() {
+        var gate = ResearchRequestGeneration()
+        let original = gate.begin()
+        let current = gate.begin()
+        var isLoading = true
+        if gate.accepts(original, cancelled: true) { isLoading = false }
+        XCTAssertTrue(isLoading)
+        if gate.accepts(original) { isLoading = false }
+        XCTAssertTrue(isLoading)
+        if gate.accepts(current) { isLoading = false }
+        XCTAssertFalse(isLoading)
+    }
+
     func testIndependentRequestDomainsDoNotInvalidateEachOther() {
         var summaries = ResearchRequestGeneration()
         var bars = ResearchRequestGeneration()
