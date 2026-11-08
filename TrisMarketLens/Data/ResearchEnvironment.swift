@@ -79,6 +79,11 @@ struct ResearchEnvironment {
         return UnavailableHistoricalPortfolioSource()
     }
 
+    func operationalMarket() -> any OperationalMarketSource {
+        if let client { return HTTPOperationalMarketSource(client: client) }
+        return UnavailableOperationalMarketSource()
+    }
+
     func operationsV1() -> any OperationsV1Source {
         if let client { return HTTPOperationsV1Source(client: client) }
         return UnavailableOperationsV1Source()
