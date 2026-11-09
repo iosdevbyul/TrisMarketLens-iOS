@@ -47,6 +47,10 @@ class LiveAPISmokeTests(unittest.TestCase):
                 data = {"ticker": "005930", "bars": []}
             elif path.endswith("/analysis"):
                 data = {"ticker": "005930", "records": []}
+            elif path == "/api/v1/stocks/005930":
+                data = {"ticker": "005930", "name": None, "market": "KOSPI",
+                        "sector": None, "dataStatus": "unavailable", "latestDataDate": "",
+                        "availableFrom": "", "evidenceNote": "", "chartNote": ""}
             else:
                 data = {}
             return FakeResponse(json.dumps(data).encode())
@@ -183,6 +187,31 @@ class LiveAPISmokeTests(unittest.TestCase):
             self.assertEqual(checker.verify("file:///tmp", 2, None), 2)
 
 
+
+
+class LiveStockDetailContractTests(unittest.TestCase):
+    def setUp(self):
+        self.detail = {"ticker": "005930", "name": None, "market": "KOSPI",
+                       "sector": None, "dataStatus": "unavailable", "latestDataDate": "",
+                       "availableFrom": "", "evidenceNote": "", "chartNote": ""}
+
+    def test_accepts_matching_detail_and_nullable_metadata(self):
+        self.assertIsNone(checker.validate_stock_detail(self.detail, "005930"))
+
+    def test_rejects_cross_ticker_and_missing_fields(self):
+        self.assertIsNotNone(checker.validate_stock_detail(dict(self.detail, ticker="000660"), "005930"))
+        for field in ("market", "dataStatus", "latestDataDate", "availableFrom", "evidenceNote", "chartNote"):
+            with self.subTest(field=field):
+                missing = dict(self.detail)
+                del missing[field]
+                self.assertIsNotNone(checker.validate_stock_detail(missing, "005930"))
+
+    def test_rejects_malformed_metadata(self):
+        for changed in ({"market": ""}, {"dataStatus": "  "}, {"latestDataDate": 42},
+                        {"evidenceNote": []}, {"name": []}, {"sector": 99}):
+            with self.subTest(changed=changed):
+                detail = dict(self.detail, **changed)
+                self.assertIsNotNone(checker.validate_stock_detail(detail, "005930"))
 
 
 class LiveAnalysisContractTests(unittest.TestCase):
