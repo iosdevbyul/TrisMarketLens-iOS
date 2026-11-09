@@ -28,7 +28,8 @@ struct ResearchAPIClient {
               ["https", "http"].contains(scheme),
               components.host != nil,
               components.user == nil, components.password == nil,
-              components.query == nil, components.fragment == nil else {
+              components.query == nil, components.fragment == nil,
+              components.percentEncodedPath.isEmpty || components.percentEncodedPath == "/" else {
             throw ResearchAPIError.invalidConfiguration
         }
         self.baseURL = baseURL
@@ -44,7 +45,8 @@ struct ResearchAPIClient {
               ["https", "http"].contains(scheme),
               components.host != nil,
               components.user == nil, components.password == nil,
-              components.query == nil, components.fragment == nil else {
+              components.query == nil, components.fragment == nil,
+              components.percentEncodedPath.isEmpty || components.percentEncodedPath == "/" else {
             throw ResearchAPIError.invalidConfiguration
         }
         self.baseURL = baseURL
