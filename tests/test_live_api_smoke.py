@@ -215,5 +215,62 @@ class ReleaseConfigurationAuditTests(unittest.TestCase):
             self.good, [".env.example", "README.md", "docs/privacy-policy.md"]
         ), [])
 
+
+class ReleaseEvidenceReportTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        script_dir = Path(__file__).resolve().parents[1] / "scripts"
+        sys.path.insert(0, str(script_dir))
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "release_evidence", script_dir / "release_evidence.py"
+            )
+            cls.module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(cls.module)
+        finally:
+            sys.path.remove(str(script_dir))
+
+    def test_offline_report_cannot_claim_release_approved(self):
+        report = self.module.build_report("a" * 40, [], "2026-11-09T00:00:00+00:00")
+        self.assertFalse(report["release_approved"])
+        self.assertEqual(report["readiness"], "blocked")
+        self.assertEqual(report["scope"], "offline_source_audit_only")
+        self.assertEqual(report["automated_gates"]["release_source_configuration"]["status"], "passed")
+        for key, gate in report["manual_gates"].items():
+            with self.subTest(gate=key):
+                self.assertEqual(gate["status"], "not_verified")
+                self.assertIsNone(gate["evidence"])
+
+    def test_unobserved_ci_jobs_are_never_inferred_from_source_audit(self):
+        report = self.module.build_report("b" * 40, [], "2026-11-09T00:00:00+00:00")
+        for key, gate in report["automated_gates"].items():
+            if key != "release_source_configuration":
+                with self.subTest(job=key):
+                    self.assertEqual(gate["status"], "not_checked")
+
+    def test_failed_source_audit_does_not_approve_release(self):
+        report = self.module.build_report(
+            "c" * 40, ["Tracked signing material detected"], "2026-11-09T00:00:00+00:00"
+        )
+        self.assertEqual(report["automated_gates"]["release_source_configuration"]["status"], "failed")
+        self.assertEqual(report["configuration_findings"], ["Tracked signing material detected"])
+        self.assertFalse(report["release_approved"])
+
+    def test_partial_or_invalid_revision_cannot_be_recorded(self):
+        for sha in ("abc123", "", "not-a-commit", "g" * 40):
+            with self.subTest(sha=sha):
+                with self.assertRaises(ValueError):
+                    self.module.build_report(sha, [], "2026-11-09T00:00:00+00:00")
+
+    def test_report_schema_serializes_without_credentials_or_fake_evidence(self):
+        report = self.module.build_report("d" * 40, [], "2026-11-09T00:00:00+00:00")
+        restored = json.loads(json.dumps(report))
+        self.assertEqual(restored["schema_version"], 1)
+        self.assertEqual(restored["commit"], "d" * 40)
+        self.assertNotIn("token", restored)
+        self.assertNotIn("approved", restored["readiness"])
+
+
 if __name__ == "__main__":
     unittest.main()

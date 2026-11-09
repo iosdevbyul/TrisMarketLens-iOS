@@ -10,6 +10,10 @@ This checklist records verifiable conditions for the iOS research client. It doe
 - Environment tests verify explicit HTTP configuration, unsupported modes, and disconnected behavior.
 - UI must never silently substitute demo fixtures after an HTTP error.
 
+## Release evidence record
+
+Run `python3 scripts/release_evidence.py --output /tmp/trismarketlens-release-evidence.json` from the exact candidate commit. The report records a commit-scoped local configuration audit but **intentionally leaves other CI results as not checked and all manual gates as not verified**. Its `release_approved` value is always false. See [Phase 5 release evidence ledger](phase5-release-evidence-ledger.md). The reviewer must separately verify a matching GitHub Actions run and collect independent signing, privacy, approved source and physical-device evidence.
+
 ## Manual gates (before any externally distributed build)
 
 | Gate | Verification | Status |
