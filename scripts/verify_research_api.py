@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Read-only live API smoke check. No credentials, mutations, or fake success."""
 import argparse
+from datetime import date
+import re
 import json
 import math
 import sys
@@ -59,8 +61,13 @@ def validate_ohlcv(payload: dict, ticker: str):
         required = ("date", "open", "high", "low", "close", "volume")
         if any(key not in bar for key in required):
             return f"Bar {index} missing OHLCV fields"
-        if not isinstance(bar["date"], str) or not bar["date"]:
+        date_text = bar["date"]
+        if not isinstance(date_text, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", date_text):
             return f"Bar {index} has invalid date"
+        try:
+            date.fromisoformat(date_text)
+        except ValueError:
+            return f"Bar {index} has invalid calendar date"
         if bar["date"] in seen:
             return f"Bar {index} repeats date"
         seen.add(bar["date"])
