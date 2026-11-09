@@ -4,6 +4,7 @@ enum ResearchEnvironmentError: Error, Equatable {
     case unsupportedMode
     case missingBaseURL
     case invalidBaseURL
+    case insecureReleaseURL
 }
 
 struct ResearchEnvironment {
@@ -29,7 +30,19 @@ struct ResearchEnvironment {
                 throw ResearchEnvironmentError.missingBaseURL
             }
             guard let url = URL(string: raw),
-                  let client = try? ResearchAPIClient(baseURL: url) else {
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  let scheme = components.scheme?.lowercased(),
+                  let host = components.host, !host.isEmpty else {
+                throw ResearchEnvironmentError.invalidBaseURL
+            }
+            #if !DEBUG
+            // Release builds must never transmit published research over plaintext.
+            // Development-only HTTP loopback remains available in Debug.
+            guard scheme == "https" else {
+                throw ResearchEnvironmentError.insecureReleaseURL
+            }
+            #endif
+            guard let client = try? ResearchAPIClient(baseURL: url) else {
                 throw ResearchEnvironmentError.invalidBaseURL
             }
             self.client = client
