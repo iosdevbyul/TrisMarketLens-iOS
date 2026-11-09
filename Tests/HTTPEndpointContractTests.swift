@@ -77,6 +77,38 @@ final class HTTPEndpointContractTests: XCTestCase {
         XCTAssertEqual(value?.displayName, "005930")
     }
 
+    func testProjectStatusRejectsDuplicateLabelsAndBlankSourceIdentity() async throws {
+        let valid = #"{"productName":"Research","sourceLabel":"API","metrics":[{"label":"Universe","value":"10","detail":""}],"evidence":[{"label":"Source","state":"blocked","detail":""}],"baseline":[]}"#
+        let duplicateMetric = valid.replacingOccurrences(
+            of: #""metrics":[{"label":"Universe","value":"10","detail":""}]"#,
+            with: #""metrics":[{"label":"Universe","value":"10","detail":""},{"label":"Universe","value":"11","detail":""}]"#
+        )
+        let duplicateCheckpoint = valid.replacingOccurrences(
+            of: #""evidence":[{"label":"Source","state":"blocked","detail":""}]"#,
+            with: #""evidence":[{"label":"Source","state":"blocked","detail":""},{"label":"Source","state":"blocked","detail":""}]"#
+        )
+        let blankSource = valid.replacingOccurrences(of: #""sourceLabel":"API""#, with: #""sourceLabel":" ""#)
+        let blankValue = valid.replacingOccurrences(of: #""value":"10""#, with: #""value":" ""#)
+        for payload in [duplicateMetric, duplicateCheckpoint, blankSource, blankValue] {
+            do {
+                _ = try await HTTPProjectStatusSource(client: client(payload: payload)).getProjectStatus()
+                XCTFail("Invalid project status must not be displayed")
+            } catch ResearchAPIError.invalidPayload { }
+        }
+        let status = try await HTTPProjectStatusSource(client: client(payload: valid)).getProjectStatus()
+        XCTAssertEqual(status.metrics.count, 1)
+        XCTAssertEqual(status.evidence.first?.state, .blocked)
+    }
+
+    func testProjectStatusAllowsEmptySectionsWithoutInventingEvidence() async throws {
+        let payload = #"{"productName":"Research","sourceLabel":"API","metrics":[],"evidence":[],"baseline":[]}"#
+        let status = try await HTTPProjectStatusSource(client: client(payload: payload)).getProjectStatus()
+        XCTAssertTrue(status.metrics.isEmpty)
+        XCTAssertTrue(status.evidence.isEmpty)
+        XCTAssertTrue(status.baseline.isEmpty)
+    }
+
+
     func testStockResearchEndpointsDecodeEmptySnapshots() async throws {
         let tests: [(String, String)] = [
             ("ohlcv", #"{"ticker":"005930","bars":[]}"#),
