@@ -45,6 +45,38 @@ final class HTTPEndpointContractTests: XCTestCase {
         }
     }
 
+    func testHTTPStockListRejectsDuplicateAndInvalidIdentifiers() async throws {
+        let good = #"{"ticker":"005930","name":null,"market":"KOSPI","sector":null}"#
+        let duplicate = "[\(good),\(good)]"
+        let invalidTicker = #"[{"ticker":"BAD","name":null,"market":"KOSPI","sector":null}]"#
+        let blankMarket = #"[{"ticker":"005930","name":null,"market":"  ","sector":null}]"#
+        for payload in [duplicate, invalidTicker, blankMarket] {
+            let source = HTTPStockSource(client: try client(payload: payload))
+            do {
+                _ = try await source.getStocks()
+                XCTFail("Invalid stock-list payload must fail closed")
+            } catch ResearchAPIError.invalidPayload { }
+        }
+        let valid = try await HTTPStockSource(client: client(payload: "[\(good)]")).getStocks()
+        XCTAssertEqual(valid.map(\.ticker), ["005930"])
+    }
+
+    func testHTTPStockDetailRejectsCrossTickerAndBlankMetadata() async throws {
+        let valid = #"{"ticker":"005930","name":null,"market":"KOSPI","sector":null,"dataStatus":"unavailable","latestDataDate":"","availableFrom":"","evidenceNote":"","chartNote":""}"#
+        let mismatched = valid.replacingOccurrences(of: "005930", with: "000660")
+        let blank = valid.replacingOccurrences(of: "\"market\":\"KOSPI\"", with: "\"market\":\" \"")
+        let missingStatus = valid.replacingOccurrences(of: "\"dataStatus\":\"unavailable\"", with: "\"dataStatus\":\" \"")
+        for payload in [mismatched, blank, missingStatus] {
+            do {
+                _ = try await HTTPStockSource(client: client(payload: payload)).getStock(ticker: "005930")
+                XCTFail("Invalid stock-detail payload must fail closed")
+            } catch ResearchAPIError.invalidPayload { }
+        }
+        let value = try await HTTPStockSource(client: client(payload: valid)).getStock(ticker: "005930")
+        XCTAssertEqual(value?.ticker, "005930")
+        XCTAssertEqual(value?.displayName, "005930")
+    }
+
     func testStockResearchEndpointsDecodeEmptySnapshots() async throws {
         let tests: [(String, String)] = [
             ("ohlcv", #"{"ticker":"005930","bars":[]}"#),

@@ -10,11 +10,28 @@ struct HTTPProjectStatusSource: ProjectStatusSource {
 struct HTTPStockSource: StockSource {
     let client: ResearchAPIClient
     func getStocks() async throws -> [StockSummary] {
-        try await client.fetch([StockSummary].self, path: ["api", "v1", "stocks"])
+        let stocks = try await client.fetch([StockSummary].self, path: ["api", "v1", "stocks"])
+        guard stocks.count <= 10_000 else { throw ResearchAPIError.invalidPayload }
+        var tickers = Set<String>()
+        for stock in stocks {
+            guard ResearchPayloadIntegrity.ticker(stock.ticker),
+                  !stock.market.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  tickers.insert(stock.ticker).inserted else {
+                throw ResearchAPIError.invalidPayload
+            }
+        }
+        return stocks
     }
     func getStock(ticker: String) async throws -> StockDetail? {
         do {
-            return try await client.fetch(StockDetail.self, path: ["api", "v1", "stocks", ticker])
+            let detail = try await client.fetch(StockDetail.self, path: ["api", "v1", "stocks", ticker])
+            guard ResearchPayloadIntegrity.ticker(ticker),
+                  detail.ticker == ticker,
+                  !detail.market.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !detail.dataStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw ResearchAPIError.invalidPayload
+            }
+            return detail
         } catch ResearchAPIError.httpStatus(404) {
             return nil
         }
