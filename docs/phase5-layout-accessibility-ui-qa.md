@@ -9,3 +9,7 @@ Extends the existing simulator XCUITest suite with three bounded real-app UI sce
 The tests restore portrait orientation afterward, use existing stable sidebar accessibility identifiers, avoid paid or external endpoints and do not fabricate market observations. CI runs the existing UI smoke scheme alongside Debug/Release builds and unit tests.
 
 **Still manual:** VoiceOver spoken reading order and rotor navigation, real physical iPhone/iPad rotation, contrast at maximum text sizes, authenticated/approved source API testing, signing and TestFlight distribution. Simulator presence assertions do not certify complete accessibility compliance.
+
+## UI regression discovered by CI
+
+The first simulator run exposed a genuine split-view navigation issue: after tapping Stocks, the screen stayed on `Loading stocks` / `Waiting for request` rather than starting its disconnected-source fetch. The Stocks view now initiates its view-owned request on `onAppear` to avoid an initial SwiftUI `.task` being cancelled during compact sidebar transition. The latest-request guard still prevents superseded requests from applying stale results. The disconnected Stocks XCUITest requires the actionable Retry button to appear; simply displaying the loading spinner is not accepted as success.
