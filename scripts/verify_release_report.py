@@ -112,10 +112,13 @@ def check(report: dict, expected_sha: str | None = None) -> list[str]:
                     _utc_timestamp(row["observed_at_utc"])
                 except ValueError:
                     problems.append("Invalid manual evidence UTC timestamp")
-                if gate in seen_gates or eid in seen_ids:
-                    problems.append("Duplicate manual gate or evidence ID")
+                if gate in seen_gates:
+                    problems.append("Duplicate manual gate")
                 seen_gates.add(gate)
-                seen_ids.add(eid)
+                if isinstance(eid, str):
+                    if eid in seen_ids:
+                        problems.append("Duplicate manual evidence ID")
+                    seen_ids.add(eid)
                 claimed = manual.get(gate)
                 if not isinstance(claimed, dict) or claimed.get("evidence") != f"submitted_for_review:{eid}":
                     problems.append(f"Manual evidence reference mismatch: {gate}")
