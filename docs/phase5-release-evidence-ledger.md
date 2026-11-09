@@ -55,6 +55,37 @@ python3 scripts/release_evidence.py --ci-evidence /tmp/trismarketlens-ci-run.jso
 
 An unmatched, incomplete, failed, skipped, duplicate, or wrong-repository run is rejected. Locally supplied API JSON is evidence input, not independently authenticated; reviewers must validate the original GitHub Actions URL themselves. This does not approve a release, verify live API, or change any manual gate status.
 
+## Manual QA submissions (review pending only)
+
+A QA operator may submit **opaque, non-sensitive evidence IDs** scoped to the candidate's exact full commit SHA. These are review requests, not independent confirmations or approvals. Example local JSON (illustrative only):
+
+```json
+{
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "entries": [
+    {
+      "gate": "physical_iphone_and_ipad_navigation",
+      "evidence_id": "QA-device-001",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observed_at_utc": "2026-11-09T03:00:00Z",
+      "outcome": "pass"
+    }
+  ]
+}
+```
+
+After collecting the actual evidence outside the repository:
+
+```bash
+python3 scripts/release_evidence.py \
+  --manual-evidence /tmp/trismarketlens-manual-qa.json \
+  --output /tmp/trismarketlens-release-evidence.json
+```
+
+You can also pass `--ci-evidence` alongside `--manual-evidence`. Inputs must contain only recognized gate names, safe evidence IDs (letters, numbers, dots, dashes and underscores), outcomes `pass`/`fail`/`blocked`, a UTC timestamp and matching full commit SHA. Duplicated gates/IDs, unknown fields, private URLs, embedded tokens and mismatched commits are rejected.
+
+A submitted `pass` does **not** change a gate's `not_verified` status; its evidence field is only `submitted_for_review:<ID>`. `release_approved` remains `false` and readiness remains `blocked`. A separate authorized reviewer must examine the underlying evidence through a secure channel; this tool has no approval mechanism. Never include device identifiers, raw private endpoints, API keys, unpublished research artifacts, or personal data in the report.
+
 ## Manual sign-off evidence (not automated)
 
 | Gate | Evidence the reviewer must collect |

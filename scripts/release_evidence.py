@@ -11,6 +11,7 @@ import re
 import subprocess
 
 from audit_release_config import audit, tracked_files
+from manual_release_evidence import attach_manual_submissions
 
 ROOT = Path(__file__).resolve().parents[1]
 MANUAL_GATES = (
@@ -142,6 +143,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, help="Write report JSON to a local file")
     parser.add_argument("--ci-evidence", type=Path, help="Offline GitHub Actions run+jobs JSON captured for this exact commit")
+    parser.add_argument("--manual-evidence", type=Path, help="Offline SHA-bound manual QA evidence IDs submitted for review")
     args = parser.parse_args()
     issues = audit(
         (ROOT / "project.yml").read_text(encoding="utf-8"),
@@ -156,6 +158,12 @@ def main() -> int:
             attach_ci_evidence(report, run, jobs)
         except (OSError, ValueError, TypeError, KeyError) as error:
             parser.error(f"Rejected CI evidence: {error}")
+    if args.manual_evidence:
+        try:
+            submission = json.loads(args.manual_evidence.read_text(encoding="utf-8"))
+            attach_manual_submissions(report, submission)
+        except (OSError, ValueError, TypeError, KeyError) as error:
+            parser.error(f"Rejected manual evidence: {error}")
     payload = json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

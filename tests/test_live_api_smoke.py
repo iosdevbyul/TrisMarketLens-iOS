@@ -352,5 +352,100 @@ class CIEvidenceAttachmentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.module.attach_ci_evidence(self.report, self.run, duplicate)
 
+
+class ManualEvidenceSubmissionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        ReleaseEvidenceReportTests.setUpClass()
+        cls.module = ReleaseEvidenceReportTests.module
+        cls.sha = "a" * 40
+
+    def setUp(self):
+        self.report = self.module.build_report(
+            self.sha, [], "2026-11-09T00:00:00+00:00"
+        )
+        self.submission = {
+            "commit": self.sha,
+            "entries": [{
+                "gate": "physical_iphone_and_ipad_navigation",
+                "evidence_id": "QA-iphone-001",
+                "commit": self.sha,
+                "observed_at_utc": "2026-11-09T03:00:00Z",
+                "outcome": "pass",
+            }],
+        }
+
+    def attach(self, entries=None):
+        if entries is not None:
+            self.submission["entries"] = entries
+        return self.module.attach_manual_submissions(
+            self.report, self.submission
+        )
+
+    def test_submitted_pass_remains_unverified_and_blocked(self):
+        report = self.attach()
+        gate = report["manual_gates"]["physical_iphone_and_ipad_navigation"]
+        self.assertEqual(gate["status"], "not_verified")
+        self.assertEqual(gate["evidence"], "submitted_for_review:QA-iphone-001")
+        self.assertEqual(report["manual_review_state"], "pending_independent_review")
+        self.assertFalse(report["release_approved"])
+        self.assertEqual(report["readiness"], "blocked")
+        self.assertEqual(report["manual_evidence_submissions"][0]["outcome"], "pass")
+
+    def test_submitted_fail_and_blocked_cannot_approve(self):
+        for outcome in ("fail", "blocked"):
+            with self.subTest(outcome=outcome):
+                entry = dict(self.submission["entries"][0], outcome=outcome)
+                report = self.attach([entry])
+                self.assertFalse(report["release_approved"])
+                self.assertEqual(report["manual_gates"][entry["gate"]]["status"], "not_verified")
+
+    def test_commit_mismatch_rejected_at_both_levels(self):
+        wrong = "b" * 40
+        self.submission["commit"] = wrong
+        with self.assertRaises(ValueError):
+            self.attach()
+        self.submission["commit"] = self.sha
+        self.submission["entries"][0]["commit"] = wrong
+        with self.assertRaises(ValueError):
+            self.attach()
+
+    def test_unknown_gate_and_private_url_rejected(self):
+        for field, bad in (
+            ("gate", "all_release_checks"),
+            ("evidence_id", "https://private.example/evidence"),
+            ("evidence_id", "x"),
+            ("outcome", "approved"),
+        ):
+            with self.subTest(field=field):
+                entry = dict(self.submission["entries"][0], **{field: bad})
+                with self.assertRaises(ValueError):
+                    self.attach([entry])
+
+    def test_extra_fields_and_duplicate_claims_rejected(self):
+        entry = self.submission["entries"][0]
+        for bad in (
+            [dict(entry, token="secret")],
+            [entry, dict(entry, evidence_id="QA-iphone-002")],
+            [entry, dict(entry, gate="network_loss_recovery_and_request_cancellation")],
+        ):
+            with self.assertRaises(ValueError):
+                self.attach(bad)
+
+    def test_timestamp_requires_explicit_utc(self):
+        for timestamp in ("2026-11-09T03:00:00+09:00", "yesterday", ""):
+            with self.subTest(timestamp=timestamp):
+                entry = dict(self.submission["entries"][0], observed_at_utc=timestamp)
+                with self.assertRaises(ValueError):
+                    self.attach([entry])
+
+    def test_missing_entries_rejected_and_report_not_modified(self):
+        for bad in ([], "no", None):
+            with self.assertRaises(ValueError):
+                self.attach(bad)
+        self.assertNotIn("manual_evidence_submissions", self.report)
+        self.assertTrue(all(v["status"] == "not_verified" for v in self.report["manual_gates"].values()))
+
+
 if __name__ == "__main__":
     unittest.main()
