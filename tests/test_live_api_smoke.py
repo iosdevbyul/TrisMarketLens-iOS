@@ -162,5 +162,58 @@ class LiveAPISmokeTests(unittest.TestCase):
             self.assertEqual(checker.verify("file:///tmp", 2, None), 2)
 
 
+
+
+AUDIT_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "audit_release_config.py"
+audit_spec = importlib.util.spec_from_file_location("audit_release_config", AUDIT_SCRIPT)
+release_audit = importlib.util.module_from_spec(audit_spec)
+audit_spec.loader.exec_module(release_audit)
+
+
+class ReleaseConfigurationAuditTests(unittest.TestCase):
+    def setUp(self):
+        self.good = (
+            'deploymentTarget:\n'
+            '  iOS: "17.0"\n'
+            '  PRODUCT_BUNDLE_IDENTIFIER: com.iosdevbyul.TrisMarketLens\n'
+            '  TRIS_DATA_MODE: disconnected\n'
+        )
+
+    def test_repository_release_configuration_audit(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            release_audit.audit(
+                (root / "project.yml").read_text(encoding="utf-8"),
+                release_audit.tracked_files(root),
+            ), [],
+        )
+
+    def test_detects_debug_local_url_or_production_like_launch(self):
+        self.assertTrue(release_audit.audit(
+            self.good + "  TRIS_API_BASE_URL: http://127.0.0.1:8000\n", []
+        ))
+        self.assertTrue(release_audit.audit(
+            self.good.replace("disconnected", "http"), []
+        ))
+
+    def test_detects_ats_exceptions(self):
+        self.assertTrue(release_audit.audit(
+            self.good + "  NSAllowsArbitraryLoads: YES\n", []
+        ))
+        self.assertTrue(release_audit.audit(
+            self.good + "  NSExceptionAllowsInsecureHTTPLoads: true\n", []
+        ))
+
+    def test_detects_tracked_secrets_and_signing_assets(self):
+        for path in (".env", "Certificates/Distribution.p12",
+                     "Profiles/app.mobileprovision", "keys/AuthKey_ABCD.p8"):
+            with self.subTest(path=path):
+                self.assertTrue(release_audit.audit(self.good, [path]))
+
+    def test_nonsecret_examples_are_allowed(self):
+        self.assertEqual(release_audit.audit(
+            self.good, [".env.example", "README.md", "docs/privacy-policy.md"]
+        ), [])
+
 if __name__ == "__main__":
     unittest.main()
