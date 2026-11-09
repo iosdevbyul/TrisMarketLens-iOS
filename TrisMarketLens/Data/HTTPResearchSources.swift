@@ -99,7 +99,11 @@ struct HTTPBacktestingOperationsSource: BacktestingOperationsSource {
     let client: ResearchAPIClient
     func getBaseline() async throws -> BaselineBacktestSnapshot? {
         do {
-            return try await client.fetch(BaselineBacktestSnapshot.self, path: ["api", "v1", "backtests", "baseline"])
+            let baseline = try await client.fetch(BaselineBacktestSnapshot.self, path: ["api", "v1", "backtests", "baseline"])
+            guard BaselinePayloadValidation.validate(baseline) else {
+                throw ResearchAPIError.invalidPayload
+            }
+            return baseline
         } catch ResearchAPIError.httpStatus(404) {
             return nil
         }
