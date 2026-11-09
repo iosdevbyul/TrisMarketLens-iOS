@@ -21,7 +21,7 @@ python3 scripts/verify_research_api.py --base-url http://127.0.0.1:8000 --ticker
 The script uses only the Python standard library and makes GET requests.
 It checks the actual health payload (`ok`, `DonghakStockVision`,
 `read_only`) before attempting status, stocks, models, evidence,
-baseline and screener. Optional stock checks cover detail, OHLCV and analysis.
+baseline and screener. Optional stock checks cover detail, OHLCV and analysis. Analysis records are checked for the requested ticker, unique nonblank IDs, required string metadata and finite-or-null scores. Empty analysis publications remain valid; a structurally valid response never establishes prediction quality, licensed provenance or approved release.
 
 ## Interpreting results
 
