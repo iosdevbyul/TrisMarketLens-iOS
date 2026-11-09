@@ -40,6 +40,10 @@ def collect(run_id: int, sha: str, fetch=github_json) -> dict:
 
     base = f"repos/{REPOSITORY}/actions/runs/{run_id}"
     run = fetch(base)
+    if (not isinstance(run, dict)
+            or type(run.get("id")) is not int
+            or run["id"] != run_id):
+        raise ValueError("Fetched CI run ID differs from requested run ID")
     jobs_response = fetch(base + "/jobs?per_page=100")
     if not isinstance(jobs_response, dict):
         raise ValueError("Invalid jobs response")
