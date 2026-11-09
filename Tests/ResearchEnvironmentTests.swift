@@ -43,6 +43,17 @@ final class ResearchEnvironmentTests: XCTestCase {
         ]))
     }
 
+    func testHTTPEnvironmentRejectsNonRootBaseURL() {
+        for raw in ["https://example.test/api", "https://example.test/api/v1"] {
+            XCTAssertThrowsError(try ResearchEnvironment(values: [
+                "TRIS_DATA_MODE": "http",
+                "TRIS_API_BASE_URL": raw,
+            ])) { error in
+                XCTAssertEqual(error as? ResearchEnvironmentError, .invalidBaseURL)
+            }
+        }
+    }
+
     func testHTTPCanBeSelectedWithoutStartingNetworkTraffic() throws {
         let environment = try ResearchEnvironment(values: [
             "TRIS_DATA_MODE": "http",
