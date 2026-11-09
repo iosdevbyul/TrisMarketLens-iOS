@@ -81,6 +81,21 @@ def validate_ohlcv(payload: dict, ticker: str):
             return f"Bar {index} has invalid volume"
     return None
 
+def validate_stock_detail(payload: dict, ticker: str):
+    """Check the StockDetail decoding contract, not live source authenticity."""
+    if payload.get("ticker") != ticker:
+        return "Stock detail ticker mismatch"
+    required = ("market", "dataStatus", "latestDataDate", "availableFrom", "evidenceNote", "chartNote")
+    if any(not isinstance(payload.get(key), str) for key in required):
+        return "Stock detail has missing or invalid required string fields"
+    if not payload["market"].strip() or not payload["dataStatus"].strip():
+        return "Stock detail market or dataStatus is blank"
+    for optional in ("name", "sector"):
+        if optional in payload and payload[optional] is not None and not isinstance(payload[optional], str):
+            return f"Stock detail has invalid {optional}"
+    return None
+
+
 def validate_analysis(payload: dict, ticker: str):
     """Check analysis identity and record structure, not model performance."""
     if payload.get("ticker") != ticker or not isinstance(payload.get("records"), list):
@@ -141,6 +156,8 @@ def verify(base: str, timeout: float, ticker: str | None) -> int:
                 missing = required.difference(result) if isinstance(result, dict) else set()
                 if missing:
                     state, result = "INCOMPATIBLE", "Missing fields: " + ", ".join(sorted(missing))
+                elif ticker and canonical == "/api/v1/stocks/{ticker}" and (issue := validate_stock_detail(result, ticker)):
+                    state, result = "INCOMPATIBLE", issue
                 elif ticker and canonical == "/api/v1/stocks/{ticker}/ohlcv" and (issue := validate_ohlcv(result, ticker)):
                     state, result = "INCOMPATIBLE", issue
                 elif ticker and canonical == "/api/v1/stocks/{ticker}/analysis" and (issue := validate_analysis(result, ticker)):
