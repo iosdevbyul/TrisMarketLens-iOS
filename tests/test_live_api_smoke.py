@@ -272,5 +272,85 @@ class ReleaseEvidenceReportTests(unittest.TestCase):
         self.assertNotIn("approved", restored["readiness"])
 
 
+
+class CIEvidenceAttachmentTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        ReleaseEvidenceReportTests.setUpClass()
+        cls.module = ReleaseEvidenceReportTests.module
+        cls.sha = "e" * 40
+
+    def setUp(self):
+        self.report = self.module.build_report(self.sha, [], "2026-11-09T00:00:00+00:00")
+        self.run = {
+            "id": 12345,
+            "name": "iOS CI",
+            "head_sha": self.sha,
+            "status": "completed",
+            "conclusion": "success",
+            "event": "pull_request",
+            "head_repository": {"full_name": "iosdevbyul/TrisMarketLens-iOS"},
+            "html_url": "https://github.com/iosdevbyul/TrisMarketLens-iOS/actions/runs/12345",
+        }
+        names = ["Test read-only API verification script", *self.module.CI_STEPS.values()]
+        self.jobs = [{
+            "name": "build-and-test",
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [{"name": n, "status": "completed", "conclusion": "success"} for n in names],
+        }]
+
+    def test_exact_successful_sha_records_ci_steps_but_never_approves(self):
+        report = self.module.attach_ci_evidence(self.report, self.run, self.jobs)
+        for gate in self.module.CI_STEPS:
+            self.assertEqual(report["automated_gates"][gate]["status"], "passed")
+            self.assertIn(self.sha, report["automated_gates"][gate]["evidence"])
+        self.assertFalse(report["release_approved"])
+        self.assertEqual(report["readiness"], "blocked")
+        self.assertTrue(all(x["status"] == "not_verified" for x in report["manual_gates"].values()))
+
+    def test_different_commit_is_rejected(self):
+        self.run["head_sha"] = "f" * 40
+        with self.assertRaises(ValueError):
+            self.module.attach_ci_evidence(self.report, self.run, self.jobs)
+
+    def test_incomplete_or_failed_run_is_rejected(self):
+        for field, value in (("status", "in_progress"), ("conclusion", "failure"),
+                             ("event", "workflow_dispatch"), ("name", "Other CI")):
+            with self.subTest(field=field):
+                run = dict(self.run, **{field: value})
+                with self.assertRaises(ValueError):
+                    self.module.attach_ci_evidence(self.report, run, self.jobs)
+
+    def test_failed_or_missing_ui_step_is_rejected(self):
+        for bad in ("failure", "skipped", None):
+            with self.subTest(outcome=bad):
+                jobs = json.loads(json.dumps(self.jobs))
+                step = jobs[0]["steps"][-1]
+                if bad is None:
+                    jobs[0]["steps"].pop()
+                else:
+                    step["conclusion"] = bad
+                with self.assertRaises(ValueError):
+                    self.module.attach_ci_evidence(self.report, self.run, jobs)
+
+    def test_wrong_repository_or_evidence_url_is_rejected(self):
+        for field, value in (
+            ("head_repository", {"full_name": "untrusted/repo"}),
+            ("html_url", "https://example.com/actions/runs/12345"),
+        ):
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError):
+                    self.module.attach_ci_evidence(self.report, dict(self.run, **{field: value}), self.jobs)
+
+    def test_missing_or_duplicate_job_evidence_is_rejected(self):
+        for jobs in ([], self.jobs * 2):
+            with self.assertRaises(ValueError):
+                self.module.attach_ci_evidence(self.report, self.run, jobs)
+        duplicate = json.loads(json.dumps(self.jobs))
+        duplicate[0]["steps"].append(dict(duplicate[0]["steps"][0]))
+        with self.assertRaises(ValueError):
+            self.module.attach_ci_evidence(self.report, self.run, duplicate)
+
 if __name__ == "__main__":
     unittest.main()

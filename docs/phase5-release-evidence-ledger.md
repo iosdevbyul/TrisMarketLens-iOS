@@ -15,6 +15,46 @@ The report records the **40-character git SHA**, UTC creation time, offline sour
 
 Use the GitHub Actions commit-specific run URL separately to verify simulator builds, Swift unit tests, XCUITest, and offline Python tests. **Do not** replace `not_checked` in this automatically generated report by assuming that the latest green result belongs to the recorded SHA.
 
+## Optional exact-commit GitHub Actions evidence import
+
+To attach verified automated gate observations without inventing a release approval, capture the GitHub Actions **workflow-run JSON and jobs JSON** for the exact commit. The combined local input must have the form:
+
+```json
+{
+  "run": {
+    "id": 12345,
+    "name": "iOS CI",
+    "head_sha": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "status": "completed",
+    "conclusion": "success",
+    "event": "pull_request",
+    "head_repository": {"full_name": "iosdevbyul/TrisMarketLens-iOS"},
+    "html_url": "https://github.com/iosdevbyul/TrisMarketLens-iOS/actions/runs/12345"
+  },
+  "jobs": [{
+    "name": "build-and-test",
+    "status": "completed",
+    "conclusion": "success",
+    "steps": [
+      {"name": "Test read-only API verification script", "status": "completed", "conclusion": "success"},
+      {"name": "Build for iOS Simulator", "status": "completed", "conclusion": "success"},
+      {"name": "Build Release configuration for iOS Simulator", "status": "completed", "conclusion": "success"},
+      {"name": "Run unit tests", "status": "completed", "conclusion": "success"},
+      {"name": "Run Release unit tests", "status": "completed", "conclusion": "success"},
+      {"name": "Run application launch UI smoke tests", "status": "completed", "conclusion": "success"}
+    ]
+  }]
+}
+```
+
+The example is illustrative, **not a real run**. Use an actual full SHA and matching run ID. A reviewer can retrieve run details with `gh api repos/iosdevbyul/TrisMarketLens-iOS/actions/runs/RUN_ID` and job details with `gh api repos/iosdevbyul/TrisMarketLens-iOS/actions/runs/RUN_ID/jobs` and combine the `run` object with the API response's `jobs` array into one local JSON file. The script validates the exact commit, repository, run identity, successful job, and each required successful named step before marking automated CI gates as passed.
+
+```bash
+python3 scripts/release_evidence.py --ci-evidence /tmp/trismarketlens-ci-run.json --output /tmp/trismarketlens-release-evidence.json
+```
+
+An unmatched, incomplete, failed, skipped, duplicate, or wrong-repository run is rejected. Locally supplied API JSON is evidence input, not independently authenticated; reviewers must validate the original GitHub Actions URL themselves. This does not approve a release, verify live API, or change any manual gate status.
+
 ## Manual sign-off evidence (not automated)
 
 | Gate | Evidence the reviewer must collect |
