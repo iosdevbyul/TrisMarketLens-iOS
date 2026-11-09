@@ -3,11 +3,13 @@
 This verifies consistency, not origin authenticity, signing or release approval.
 """
 import argparse
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
 
 from release_evidence import AUTOMATED_GATES, MANUAL_GATES, CI_STEPS
+from manual_release_evidence import EVIDENCE_ID, EXPECTED_FIELDS, OUTCOMES, _utc_timestamp
 
 SHA = re.compile(r"^[a-f0-9]{40}$")
 CI_PREFIX = "https://github.com/iosdevbyul/TrisMarketLens-iOS/actions/runs/"
@@ -26,9 +28,23 @@ def check(report: dict, expected_sha: str | None = None) -> list[str]:
         problems.append("Repository identity mismatch")
     if report.get("schema_version") != 1:
         problems.append("Unsupported report schema")
+    created = report.get("created_at_utc")
+    try:
+        if not isinstance(created, str):
+            raise ValueError("Missing UTC timestamp")
+        parsed = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        if parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+            raise ValueError("Not UTC")
+    except ValueError:
+        problems.append("Invalid report UTC creation time")
+    expected_scope = ("offline_source_audit_and_ci_observations"
+                      if report.get("ci_evidence") is not None else "offline_source_audit_only")
+    if report.get("scope") != expected_scope:
+        problems.append("Report scope conflicts with CI evidence")
     if report.get("release_approved") is not False or report.get("readiness") != "blocked":
         problems.append("Report illegally indicates release approval/readiness")
-    if not isinstance(report.get("configuration_findings"), list):
+    if (not isinstance(report.get("configuration_findings"), list)
+            or any(not isinstance(item, str) for item in report["configuration_findings"])):
         problems.append("Configuration audit findings missing")
     automated = report.get("automated_gates")
     if not isinstance(automated, dict) or set(automated) != set(AUTOMATED_GATES):
@@ -76,20 +92,46 @@ def check(report: dict, expected_sha: str | None = None) -> list[str]:
         elif report.get("manual_review_state") != "pending_independent_review":
             problems.append("Manual evidence has no pending review state")
         else:
-            seen = set()
+            seen_gates = set()
+            seen_ids = set()
             for row in submissions:
-                if not isinstance(row, dict) or row.get("gate") not in MANUAL_GATES or row.get("commit") != sha:
+                if (not isinstance(row, dict)
+                        or set(row) != EXPECTED_FIELDS
+                        or not isinstance(row.get("gate"), str)
+                        or row.get("gate") not in MANUAL_GATES
+                        or row.get("commit") != sha):
                     problems.append("Manual evidence mismatched or unknown gate")
                     continue
                 gate = row["gate"]
-                if gate in seen:
-                    problems.append("Duplicate manual gate evidence")
-                seen.add(gate)
+                eid = row["evidence_id"]
+                if not isinstance(eid, str) or not EVIDENCE_ID.fullmatch(eid):
+                    problems.append("Invalid manual evidence ID")
+                if not isinstance(row["outcome"], str) or row["outcome"] not in OUTCOMES:
+                    problems.append("Invalid manual QA outcome")
+                try:
+                    _utc_timestamp(row["observed_at_utc"])
+                except ValueError:
+                    problems.append("Invalid manual evidence UTC timestamp")
+                if gate in seen_gates:
+                    problems.append("Duplicate manual gate")
+                seen_gates.add(gate)
+                if isinstance(eid, str):
+                    if eid in seen_ids:
+                        problems.append("Duplicate manual evidence ID")
+                    seen_ids.add(eid)
                 claimed = manual.get(gate)
-                if not isinstance(claimed, dict) or claimed.get("evidence") != f"submitted_for_review:{row.get('evidence_id')}":
+                if not isinstance(claimed, dict) or claimed.get("evidence") != f"submitted_for_review:{eid}":
                     problems.append(f"Manual evidence reference mismatch: {gate}")
-    elif "manual_review_state" in report:
-        problems.append("Manual review state exists without submitted evidence")
+            for gate in MANUAL_GATES:
+                if (gate not in seen_gates and isinstance(manual.get(gate), dict)
+                        and manual[gate].get("evidence") is not None):
+                    problems.append(f"Unsubmitted manual evidence reference: {gate}")
+    else:
+        if "manual_review_state" in report:
+            problems.append("Manual review state exists without submitted evidence")
+        for gate in MANUAL_GATES:
+            if isinstance(manual.get(gate), dict) and manual[gate].get("evidence") is not None:
+                problems.append(f"Manual evidence without submission: {gate}")
     return problems
 
 

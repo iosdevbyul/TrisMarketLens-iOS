@@ -111,6 +111,8 @@ You can also pass `--ci-evidence` alongside `--manual-evidence`. Inputs must con
 
 A submitted `pass` does **not** change a gate's `not_verified` status; its evidence field is only `submitted_for_review:<ID>`. `release_approved` remains `false` and readiness remains `blocked`. A separate authorized reviewer must examine the underlying evidence through a secure channel; this tool has no approval mechanism. Never include device identifiers, raw private endpoints, API keys, unpublished research artifacts, or personal data in the report.
 
+The offline verifier additionally checks the report's UTC creation time and observed scope, as well as safe manual evidence IDs, required submission fields, allowed QA outcomes, explicit UTC observation timestamps, duplicate evidence IDs, and evidence references without matching submissions. These consistency checks are not cryptographic authentication or independent manual QA approval.
+
 ## Verify report consistency before reviewer sign-off
 
 Run the offline verifier against a generated release report and the exact candidate commit:
