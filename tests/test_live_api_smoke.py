@@ -630,5 +630,48 @@ class GithubCIEvidenceCollectorTests(unittest.TestCase):
         ])
 
 
+
+class CleanReleaseCheckoutTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        ReleaseEvidenceReportTests.setUpClass()
+        cls.module = ReleaseEvidenceReportTests.module
+
+    def test_clean_checkout_is_accepted(self):
+        with patch.object(self.module.subprocess, "check_output", return_value=""):
+            self.module.ensure_clean_checkout(Path("/tmp/source"))
+
+    def test_modified_staged_and_untracked_files_are_rejected_without_path_leak(self):
+        for git_status in (
+            " M project.yml\n",
+            "M  TrisMarketLens/Data/ResearchEnvironment.swift\n",
+            "?? private-token-file.txt\n",
+            " D docs/release-readiness.md\n",
+            "R  docs/old.md -> docs/new.md\n",
+        ):
+            with self.subTest(status=git_status):
+                with patch.object(self.module.subprocess, "check_output", return_value=git_status):
+                    with self.assertRaises(ValueError) as caught:
+                        self.module.ensure_clean_checkout(Path("/tmp/source"))
+                    self.assertNotIn("private-token-file", str(caught.exception))
+                    self.assertIn("clean Git checkout", str(caught.exception))
+
+    def test_git_status_failure_cannot_be_assumed_clean(self):
+        with patch.object(
+            self.module.subprocess, "check_output", side_effect=OSError("git unavailable")
+        ):
+            with self.assertRaises(ValueError):
+                self.module.ensure_clean_checkout(Path("/tmp/source"))
+
+    def test_git_command_checks_all_untracked_files_without_mutation(self):
+        with patch.object(self.module.subprocess, "check_output", return_value="") as call:
+            self.module.ensure_clean_checkout(Path("/tmp/source"))
+        args, kwargs = call.call_args
+        self.assertEqual(args[0], [
+            "git", "-C", "/tmp/source", "status", "--porcelain=v1", "--untracked-files=all"
+        ])
+        self.assertEqual(kwargs["text"], True)
+
+
 if __name__ == "__main__":
     unittest.main()

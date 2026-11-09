@@ -11,6 +11,8 @@ python3 scripts/audit_release_config.py
 python3 scripts/release_evidence.py --output /tmp/trismarketlens-release-evidence.json
 ```
 
+The generator now refuses to run unless `git status --porcelain=v1 --untracked-files=all` is empty. Commit all candidate changes before recording the SHA. Untracked files, staged files and modified tracked files must not be silently attributed to HEAD; ignored Xcode-generated files are excluded by Git. Store output JSON outside the checkout, such as `/tmp`, to avoid making the working tree dirty. The check is a local consistency safeguard, not cryptographic proof of the source artifact.
+
 The report records the **40-character git SHA**, UTC creation time, offline source audit findings, CI gates as `not_checked` (unless independently populated by an authorized verifier), and outstanding manual gates as `not_verified`. Release approval is always `false`; readiness is `blocked`. A script success exit merely indicates that this local configuration audit did not find a known source-level issue.
 
 Use the GitHub Actions commit-specific run URL separately to verify simulator builds, Swift unit tests, XCUITest, and offline Python tests. **Do not** replace `not_checked` in this automatically generated report by assuming that the latest green result belongs to the recorded SHA.
