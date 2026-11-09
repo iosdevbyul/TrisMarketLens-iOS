@@ -55,6 +55,29 @@ python3 scripts/release_evidence.py --ci-evidence /tmp/trismarketlens-ci-run.jso
 
 An unmatched, incomplete, failed, skipped, duplicate, or wrong-repository run is rejected. Locally supplied API JSON is evidence input, not independently authenticated; reviewers must validate the original GitHub Actions URL themselves. This does not approve a release, verify live API, or change any manual gate status.
 
+## Collect the GitHub run without copying API JSON by hand
+
+After `gh auth login` has authorized access to the repository, use the commit-specific run ID shown on the GitHub Actions page:
+
+```bash
+python3 scripts/collect_ci_evidence.py \
+  --run-id RUN_ID \
+  --sha FULL_40_CHARACTER_COMMIT_SHA \
+  --output /tmp/trismarketlens-ci-run.json
+
+python3 scripts/release_evidence.py \
+  --ci-evidence /tmp/trismarketlens-ci-run.json \
+  --output /tmp/trismarketlens-release-evidence.json
+
+python3 scripts/verify_release_report.py \
+  /tmp/trismarketlens-release-evidence.json \
+  --expected-sha FULL_40_CHARACTER_COMMIT_SHA
+```
+
+The collector executes only authenticated `gh api --method GET` operations against the fixed repository's run and job endpoints. It requires a completed successful `iOS CI` run matching the exact full commit SHA and one complete successful `build-and-test` job with all required step names. The output contains only minimal run and step result metadata, not GitHub credentials or full API responses. It refuses incomplete/paginated job results instead of assuming any missing jobs passed.
+
+This is a convenience for collecting and consistently filtering GitHub evidence. It does **not** verify that the backend data is licensed, validate Apple signing, perform manual QA, or approve release. The tool requires GitHub CLI and an authenticated local operator; CI itself remains network-isolated from release evidence import.
+
 ## Manual QA submissions (review pending only)
 
 A QA operator may submit **opaque, non-sensitive evidence IDs** scoped to the candidate's exact full commit SHA. These are review requests, not independent confirmations or approvals. Example local JSON (illustrative only):

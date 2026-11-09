@@ -531,5 +531,104 @@ class ReleaseReportIntegrityTests(unittest.TestCase):
         self.assertTrue(self.verifier.check(self.report))
 
 
+
+class GithubCIEvidenceCollectorTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        script_dir = Path(__file__).resolve().parents[1] / "scripts"
+        sys.path.insert(0, str(script_dir))
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "collect_ci_evidence", script_dir / "collect_ci_evidence.py"
+            )
+            cls.collector = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(cls.collector)
+        finally:
+            sys.path.remove(str(script_dir))
+        ReleaseEvidenceReportTests.setUpClass()
+        cls.evidence = ReleaseEvidenceReportTests.module
+
+    def setUp(self):
+        self.sha = "a" * 40
+        self.run = {
+            "id": 123,
+            "name": "iOS CI",
+            "head_sha": self.sha,
+            "status": "completed",
+            "conclusion": "success",
+            "event": "pull_request",
+            "head_repository": {"full_name": "iosdevbyul/TrisMarketLens-iOS"},
+            "html_url": "https://github.com/iosdevbyul/TrisMarketLens-iOS/actions/runs/123",
+            "sensitive_extra": "do-not-export",
+        }
+        names = ["Test read-only API verification script", *self.evidence.CI_STEPS.values()]
+        self.jobs = [{
+            "name": "build-and-test", "status": "completed", "conclusion": "success",
+            "steps": [
+                {"name": name, "status": "completed", "conclusion": "success"}
+                for name in names
+            ],
+            "sensitive_extra": "do-not-export",
+        }]
+
+    def fetch(self, endpoint):
+        if endpoint.endswith("/jobs?per_page=100"):
+            return {"total_count": 1, "jobs": self.jobs}
+        return self.run
+
+    def test_collects_exact_success_and_removes_unnecessary_api_fields(self):
+        output = self.collector.collect(123, self.sha, fetch=self.fetch)
+        self.assertEqual(output["run"]["head_sha"], self.sha)
+        self.assertEqual(output["jobs"][0]["steps"][-1]["conclusion"], "success")
+        self.assertNotIn("sensitive_extra", json.dumps(output))
+        report = self.evidence.build_report(self.sha, [], "2026-11-09T00:00:00+00:00")
+        self.evidence.attach_ci_evidence(report, output["run"], output["jobs"])
+        self.assertFalse(report["release_approved"])
+
+    def test_rejects_wrong_commit_before_writing_evidence(self):
+        self.run["head_sha"] = "b" * 40
+        with self.assertRaises(ValueError):
+            self.collector.collect(123, self.sha, fetch=self.fetch)
+
+    def test_rejects_failed_job_or_missing_step(self):
+        for change in ("failed", "missing"):
+            with self.subTest(change=change):
+                jobs = json.loads(json.dumps(self.jobs))
+                if change == "failed":
+                    jobs[0]["conclusion"] = "failure"
+                else:
+                    jobs[0]["steps"].pop()
+                def fetch(endpoint):
+                    return {"total_count": 1, "jobs": jobs} if endpoint.endswith("/jobs?per_page=100") else self.run
+                with self.assertRaises(ValueError):
+                    self.collector.collect(123, self.sha, fetch=fetch)
+
+    def test_rejects_incomplete_or_paginated_jobs(self):
+        for count in (0, 2, None, True):
+            with self.subTest(total=count):
+                def fetch(endpoint):
+                    return {"total_count": count, "jobs": self.jobs} if endpoint.endswith("/jobs?per_page=100") else self.run
+                with self.assertRaises(ValueError):
+                    self.collector.collect(123, self.sha, fetch=fetch)
+
+    def test_rejects_invalid_run_identity(self):
+        for run_id, sha in ((0, self.sha), (True, self.sha), (123, "abc"), (123, "G" * 40)):
+            with self.subTest(run_id=run_id, sha=sha):
+                with self.assertRaises(ValueError):
+                    self.collector.collect(run_id, sha, fetch=self.fetch)
+
+    def test_uses_fixed_repository_and_get_only_endpoints(self):
+        endpoints = []
+        def fetch(endpoint):
+            endpoints.append(endpoint)
+            return self.fetch(endpoint)
+        self.collector.collect(123, self.sha, fetch=fetch)
+        self.assertEqual(endpoints, [
+            "repos/iosdevbyul/TrisMarketLens-iOS/actions/runs/123",
+            "repos/iosdevbyul/TrisMarketLens-iOS/actions/runs/123/jobs?per_page=100",
+        ])
+
+
 if __name__ == "__main__":
     unittest.main()
