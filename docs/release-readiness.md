@@ -4,7 +4,8 @@ This checklist records verifiable conditions for the iOS research client. It doe
 
 ## Automated gates (CI)
 
-- XcodeGen project generation, iOS Simulator build and XCTest suite must succeed.
+- XcodeGen project generation, Debug/Release iOS Simulator builds, XCTest and real app-launch XCUITest suites must succeed.
+- Existing offline Python unittest suite also audits the versioned XcodeGen release configuration for minimum OS, bundle identifier, disconnected scheme launch, absence of insecure ATS overrides and tracked signing/private-key artifacts. This is a static source scan, not a signing or privacy certification.
 - Read-only API smoke-check script unit tests must pass. These test the script, **not a live server**.
 - Environment tests verify explicit HTTP configuration, unsupported modes, and disconnected behavior.
 - UI must never silently substitute demo fixtures after an HTTP error.
@@ -25,7 +26,7 @@ This checklist records verifiable conditions for the iOS research client. It doe
 ## Interpretation
 
 - A green PR or main CI run means the checked build/tests passed, **not** that the app is production-ready.
-- Default `TRIS_DATA_MODE` is `mock` for development: do not treat a normal launch as a live-data verification.
+- Debug process defaults to `mock` only if no explicit data mode is supplied; the generated Xcode run scheme explicitly starts in `disconnected`. Release without explicit data mode starts disconnected and requires HTTPS for HTTP research mode. Never interpret a launch as live-data verification.
 - Unknown/unpublished outcomes must remain unavailable, not inferred.
 - See [live API verification](live-api-verification.md) for commands and response interpretation.
 - Advance the manual gates only after collecting run-specific evidence. Do not mark a gate complete from unit tests alone.
