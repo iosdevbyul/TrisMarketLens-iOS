@@ -33,6 +33,34 @@ final class ResearchAPIClientTests: XCTestCase {
         }
     }
 
+    func testFetchRejectsUnsafePathSegmentsBeforeNetwork() async throws {
+        let client = try ResearchAPIClient(baseURL: URL(string: "https://example.test")!)
+        let invalid = ["", ".", "..", "a/b", "a?debug=true", "a#fragment",
+                       "%2F", "a\\b", "a b", "a\nheader", "a\tvalue"]
+        for value in invalid {
+            do {
+                _ = try await client.fetch(ProjectStatus.self, path: ["api", value])
+                XCTFail("Unsafe GET segment should be rejected")
+            } catch ResearchAPIError.invalidConfiguration {
+                // Rejected before constructing a URL or sending a request.
+            }
+        }
+    }
+
+    func testPostRejectsUnsafePathSegmentsBeforeNetwork() async throws {
+        let client = try ResearchAPIClient(baseURL: URL(string: "https://example.test")!)
+        for segment in ["../escape", "%2F", "target?x=1", "target#fragment", "has space"] {
+            do {
+                _ = try await client.post(ProjectStatus.self,
+                                          path: ["api", segment],
+                                          request: ["probe": "safe"])
+                XCTFail("Unsafe POST segment should be rejected")
+            } catch ResearchAPIError.invalidConfiguration {
+                // No mutation or network request was attempted.
+            }
+        }
+    }
+
     func testHTTPFailureDoesNotBecomeMockData() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [ResearchMockURLProtocol.self]
