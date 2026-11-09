@@ -86,6 +86,20 @@ You can also pass `--ci-evidence` alongside `--manual-evidence`. Inputs must con
 
 A submitted `pass` does **not** change a gate's `not_verified` status; its evidence field is only `submitted_for_review:<ID>`. `release_approved` remains `false` and readiness remains `blocked`. A separate authorized reviewer must examine the underlying evidence through a secure channel; this tool has no approval mechanism. Never include device identifiers, raw private endpoints, API keys, unpublished research artifacts, or personal data in the report.
 
+## Verify report consistency before reviewer sign-off
+
+Run the offline verifier against a generated release report and the exact candidate commit:
+
+```bash
+python3 scripts/verify_release_report.py \
+  /tmp/trismarketlens-release-evidence.json \
+  --expected-sha FULL_40_CHARACTER_COMMIT_SHA
+```
+
+The verifier rejects false release approval, verified manual-gate assertions, missing or inconsistent CI step references, unexpected repository or schema, incorrect source-audit result, mismatched manual evidence IDs and mismatched candidate SHA. These are structural consistency checks on the supplied JSON, **not cryptographic authenticity or independent verification of any submitted evidence**. An attacker who controls the JSON could still forge internally consistent data; reviewers must independently open the linked GitHub Actions run and examine original manual evidence.
+
+Successful verification is not authorization to distribute. `release_approved` is always false and all manual gates remain pending independent review.
+
 ## Manual sign-off evidence (not automated)
 
 | Gate | Evidence the reviewer must collect |

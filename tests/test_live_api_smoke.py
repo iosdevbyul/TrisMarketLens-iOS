@@ -447,5 +447,89 @@ class ManualEvidenceSubmissionTests(unittest.TestCase):
         self.assertTrue(all(v["status"] == "not_verified" for v in self.report["manual_gates"].values()))
 
 
+
+class ReleaseReportIntegrityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        script_dir = Path(__file__).resolve().parents[1] / "scripts"
+        sys.path.insert(0, str(script_dir))
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "verify_release_report", script_dir / "verify_release_report.py"
+            )
+            cls.verifier = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(cls.verifier)
+        finally:
+            sys.path.remove(str(script_dir))
+        ReleaseEvidenceReportTests.setUpClass()
+        cls.builder = ReleaseEvidenceReportTests.module
+
+    def setUp(self):
+        self.sha = "f" * 40
+        self.report = self.builder.build_report(
+            self.sha, [], "2026-11-09T00:00:00+00:00"
+        )
+
+    def test_unverified_candidate_structure_is_consistent(self):
+        self.assertEqual(self.verifier.check(self.report, self.sha), [])
+
+    def test_approval_or_verified_manual_gate_is_rejected(self):
+        self.report["release_approved"] = True
+        self.assertTrue(self.verifier.check(self.report))
+        self.report["release_approved"] = False
+        self.report["manual_gates"]["apple_signing_and_testflight_distribution"]["status"] = "verified"
+        self.assertTrue(self.verifier.check(self.report))
+
+    def test_missing_ci_cannot_claim_pass(self):
+        self.report["automated_gates"]["simulator_ui_tests"]["status"] = "passed"
+        self.assertTrue(self.verifier.check(self.report))
+
+    def test_candidate_commit_repository_and_schema_are_bound(self):
+        self.assertTrue(self.verifier.check(self.report, "e" * 40))
+        self.report["repository"] = "untrusted/repository"
+        self.assertTrue(self.verifier.check(self.report))
+        self.report["repository"] = "iosdevbyul/TrisMarketLens-iOS"
+        self.report["schema_version"] = 2
+        self.assertTrue(self.verifier.check(self.report))
+
+    def test_source_audit_failure_cannot_be_marked_pass(self):
+        self.report["configuration_findings"] = ["tracked signing secret"]
+        self.assertTrue(self.verifier.check(self.report))
+
+    def test_ci_run_and_named_steps_must_match(self):
+        url = "https://github.com/iosdevbyul/TrisMarketLens-iOS/actions/runs/123"
+        self.report["ci_evidence"] = {"run_id": 123, "head_sha": self.sha, "url": url}
+        for gate, name in self.builder.CI_STEPS.items():
+            self.report["automated_gates"][gate] = {
+                "status": "passed",
+                "evidence": f"{url} (step: {name}; SHA: {self.sha})",
+            }
+        self.assertEqual(self.verifier.check(self.report), [])
+        self.report["ci_evidence"]["head_sha"] = "e" * 40
+        self.assertTrue(self.verifier.check(self.report))
+
+    def test_manual_submission_remains_review_pending_and_bound(self):
+        entry = {
+            "gate": "physical_iphone_and_ipad_navigation",
+            "evidence_id": "QA-device-001",
+            "commit": self.sha,
+            "observed_at_utc": "2026-11-09T03:00:00Z",
+            "outcome": "pass",
+        }
+        self.report["manual_evidence_submissions"] = [entry]
+        self.report["manual_review_state"] = "pending_independent_review"
+        self.report["manual_gates"][entry["gate"]]["evidence"] = "submitted_for_review:QA-device-001"
+        self.assertEqual(self.verifier.check(self.report), [])
+        self.report["manual_gates"][entry["gate"]]["evidence"] = "approved"
+        self.assertTrue(self.verifier.check(self.report))
+
+    def test_invalid_or_incomplete_report_is_rejected(self):
+        self.assertTrue(self.verifier.check({}))
+        self.assertTrue(self.verifier.check([]))
+        del self.report["manual_gates"]["approved_krx_source_and_custody"]
+        self.assertTrue(self.verifier.check(self.report))
+
+
 if __name__ == "__main__":
     unittest.main()
