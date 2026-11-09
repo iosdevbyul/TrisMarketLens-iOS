@@ -58,7 +58,7 @@ struct ResearchAPIClient {
         _ responseType: Response.Type, path: [String], request: Request
     ) async throws -> Response {
         guard !path.isEmpty,
-              path.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") }) else {
+              path.allSatisfy(Self.isSafePathSegment) else {
             throw ResearchAPIError.invalidConfiguration
         }
         let body: Data
@@ -86,7 +86,7 @@ struct ResearchAPIClient {
 
     func fetch<T: Decodable>(_ type: T.Type, path: [String], queryItems: [URLQueryItem] = []) async throws -> T {
         guard !path.isEmpty,
-              path.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") }) else {
+              path.allSatisfy(Self.isSafePathSegment) else {
             throw ResearchAPIError.invalidConfiguration
         }
 
@@ -108,6 +108,15 @@ struct ResearchAPIClient {
         } catch {
             throw ResearchAPIError.transport
         }
+    }
+
+    /// Segments are logical identifiers, never URL syntax or pre-encoded paths.
+    private static func isSafePathSegment(_ segment: String) -> Bool {
+        guard !segment.isEmpty, segment != ".", segment != ".." else { return false }
+        let forbidden = CharacterSet(charactersIn: "/\\?#%")
+            .union(.whitespacesAndNewlines)
+            .union(.controlCharacters)
+        return segment.unicodeScalars.allSatisfy { !forbidden.contains($0) }
     }
 
     /// Preserve recoverable network failures without automatically replaying requests.
