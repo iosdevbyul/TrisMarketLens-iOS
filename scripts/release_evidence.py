@@ -87,7 +87,8 @@ def attach_ci_evidence(report: dict, run: dict, jobs: list[dict]) -> dict:
             or run.get("status") != "completed"
             or run.get("conclusion") != "success"
             or run.get("event") not in ("push", "pull_request")
-            or run.get("head_repository", {}).get("full_name") != report["repository"]
+            or not isinstance(run.get("head_repository"), dict)
+            or run["head_repository"].get("full_name") != report["repository"]
             or not isinstance(run.get("id"), int)
             or isinstance(run.get("id"), bool)
             or run["id"] < 1):
