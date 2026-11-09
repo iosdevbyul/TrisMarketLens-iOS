@@ -3,7 +3,32 @@ import Foundation
 struct HTTPProjectStatusSource: ProjectStatusSource {
     let client: ResearchAPIClient
     func getProjectStatus() async throws -> ProjectStatus {
-        try await client.fetch(ProjectStatus.self, path: ["api", "v1", "project", "status"])
+        let status = try await client.fetch(ProjectStatus.self, path: ["api", "v1", "project", "status"])
+        guard !status.productName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !status.sourceLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              status.metrics.count <= 100,
+              status.evidence.count <= 100,
+              status.baseline.count <= 100 else {
+            throw ResearchAPIError.invalidPayload
+        }
+        var seenMetrics = Set<String>()
+        for metric in status.metrics {
+            guard !metric.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !metric.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  seenMetrics.insert(metric.label).inserted else {
+                throw ResearchAPIError.invalidPayload
+            }
+        }
+        for checkpoints in [status.evidence, status.baseline] {
+            var seen = Set<String>()
+            for item in checkpoints {
+                guard !item.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      seen.insert(item.label).inserted else {
+                    throw ResearchAPIError.invalidPayload
+                }
+            }
+        }
+        return status
     }
 }
 
