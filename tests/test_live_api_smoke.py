@@ -85,6 +85,25 @@ class LiveAPISmokeTests(unittest.TestCase):
             with self.subTest(payload=repr(payload)):
                 self.assertIsNotNone(checker.validate_ohlcv(payload, "005930"))
 
+    def test_ohlcv_rejects_invalid_calendar_dates(self):
+        base = {"date": "2026-10-12", "open": 100, "high": 105,
+                "low": 95, "close": 102, "volume": 200}
+        invalid = ("2026-02-29", "2026-04-31", "2026-13-01",
+                   "2026-00-01", "2026-1-01", "20261012",
+                   "2026-10-12T00:00:00Z", " 2026-10-12", "", None, 20261012)
+        for date_value in invalid:
+            with self.subTest(date=date_value):
+                payload = {"ticker": "005930", "bars": [dict(base, date=date_value)]}
+                self.assertIsNotNone(checker.validate_ohlcv(payload, "005930"))
+
+    def test_ohlcv_accepts_leap_day_and_does_not_assume_sort_order(self):
+        base = {"open": 100, "high": 105, "low": 95, "close": 102, "volume": 200}
+        payload = {"ticker": "005930", "bars": [
+            dict(base, date="2024-02-29"),
+            dict(base, date="2024-02-28"),
+        ]}
+        self.assertIsNone(checker.validate_ohlcv(payload, "005930"))
+
     def test_ohlcv_invalid_nested_data_causes_failed_smoke_check(self):
         def urlopen(request, timeout):
             path = request.full_url.split(".test", 1)[-1]
