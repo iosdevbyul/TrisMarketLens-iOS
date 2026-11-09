@@ -65,9 +65,82 @@ def build_report(commit: str, config_issues: list[str], now: str) -> dict:
     }
 
 
+# Exact GitHub Actions step names from the read-only iOS CI workflow.
+CI_STEPS = {
+    "debug_simulator_build": "Build for iOS Simulator",
+    "release_simulator_build": "Build Release configuration for iOS Simulator",
+    "swift_unit_tests": "Run unit tests",
+    "release_swift_unit_tests": "Run Release unit tests",
+    "simulator_ui_tests": "Run application launch UI smoke tests",
+}
+
+
+def attach_ci_evidence(report: dict, run: dict, jobs: list[dict]) -> dict:
+    """Attach only exact-commit, completed successful iOS CI job observations.
+
+    Evidence must be captured from GitHub's run and jobs APIs independently.
+    Never infer release approval, even when every automated gate is green.
+    """
+    target = report["commit"]
+    if (run.get("head_sha") != target
+            or run.get("name") != "iOS CI"
+            or run.get("status") != "completed"
+            or run.get("conclusion") != "success"
+            or run.get("event") not in ("push", "pull_request")
+            or run.get("head_repository", {}).get("full_name") != report["repository"]
+            or not isinstance(run.get("id"), int)
+            or isinstance(run.get("id"), bool)
+            or run["id"] < 1):
+        raise ValueError("CI run is incomplete, untrusted, failed or for another commit")
+
+    if not isinstance(jobs, list) or len(jobs) != 1:
+        raise ValueError("Exactly one successful build-and-test CI job is required")
+    job = jobs[0]
+    if (job.get("name") != "build-and-test"
+            or job.get("status") != "completed"
+            or job.get("conclusion") != "success"
+            or not isinstance(job.get("steps"), list)):
+        raise ValueError("CI job missing, failed or incomplete")
+    step_names = [item.get("name") for item in job["steps"] if isinstance(item, dict)]
+    if len(step_names) != len(set(step_names)):
+        raise ValueError("Duplicate CI step names invalidate evidence")
+    steps = {item.get("name"): item for item in job["steps"] if isinstance(item, dict)}
+    mandatory = ["Test read-only API verification script", *CI_STEPS.values()]
+    for name in mandatory:
+        step = steps.get(name)
+        if (not step
+                or step.get("status") != "completed"
+                or step.get("conclusion") != "success"):
+            raise ValueError(f"Required CI check not successful: {name}")
+
+    url = run.get("html_url")
+    expected = f"https://github.com/{report['repository']}/actions/runs/{run['id']}"
+    if url != expected:
+        raise ValueError("Unexpected CI evidence URL")
+    for gate, step_name in CI_STEPS.items():
+        report["automated_gates"][gate] = {
+            "status": "passed",
+            "evidence": f"{url} (step: {step_name}; SHA: {target})",
+        }
+    report["ci_evidence"] = {"run_id": run["id"], "head_sha": target, "url": url}
+    report["scope"] = "offline_source_audit_and_ci_observations"
+    # These fields are never unlocked by CI, regardless of the outcome.
+    report["release_approved"] = False
+    report["readiness"] = "blocked"
+    return report
+
+
+def load_ci_evidence(path: Path) -> tuple[dict, list[dict]]:
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(record, dict) or not isinstance(record.get("run"), dict):
+        raise ValueError("Expected an object with run and jobs fields")
+    return record["run"], record.get("jobs")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, help="Write report JSON to a local file")
+    parser.add_argument("--ci-evidence", type=Path, help="Offline GitHub Actions run+jobs JSON captured for this exact commit")
     args = parser.parse_args()
     issues = audit(
         (ROOT / "project.yml").read_text(encoding="utf-8"),
@@ -76,6 +149,12 @@ def main() -> int:
     report = build_report(
         revision(ROOT), issues, datetime.now(timezone.utc).isoformat()
     )
+    if args.ci_evidence:
+        try:
+            run, jobs = load_ci_evidence(args.ci_evidence)
+            attach_ci_evidence(report, run, jobs)
+        except (OSError, ValueError, TypeError, KeyError) as error:
+            parser.error(f"Rejected CI evidence: {error}")
     payload = json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
