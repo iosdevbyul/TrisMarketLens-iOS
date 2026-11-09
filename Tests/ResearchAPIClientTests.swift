@@ -6,6 +6,33 @@ final class ResearchAPIClientTests: XCTestCase {
         XCTAssertThrowsError(try ResearchAPIClient(baseURL: URL(fileURLWithPath: "/tmp")))
     }
 
+    func testRejectsBaseURLPathsAndEmbeddedParameters() {
+        let invalid = [
+            "https://example.test/api",
+            "https://example.test/api/v1",
+            "https://example.test/%2F",
+            "https://example.test/?token=secret",
+            "https://example.test/#fragment",
+            "https://name:password@example.test",
+        ]
+        for raw in invalid {
+            guard let url = URL(string: raw) else {
+                XCTFail("Unexpected invalid test URL: \(raw)")
+                continue
+            }
+            XCTAssertThrowsError(try ResearchAPIClient(baseURL: url), raw) { error in
+                XCTAssertEqual(error as? ResearchAPIError, .invalidConfiguration)
+            }
+        }
+    }
+
+    func testRootBaseURLsRemainSupported() throws {
+        for raw in ["https://example.test", "https://example.test/"] {
+            let client = try ResearchAPIClient(baseURL: URL(string: raw)!)
+            XCTAssertEqual(client.baseURL.absoluteString, raw)
+        }
+    }
+
     func testHTTPFailureDoesNotBecomeMockData() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [ResearchMockURLProtocol.self]
