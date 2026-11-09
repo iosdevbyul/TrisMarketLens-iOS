@@ -35,7 +35,8 @@ final class HTTPResearchCatalogIntegrityTests: XCTestCase {
                 XCTFail("Malformed evidence layers must not reach the UI")
             } catch ResearchAPIError.invalidPayload { }
         }
-        XCTAssertEqual(try await source("[\(valid)]").getEvidenceLayers().count, 1)
+        let layers = try await source("[\(valid)]").getEvidenceLayers()
+        XCTAssertEqual(layers.count, 1)
     }
 
     func testEvidenceDetailRejectsMismatchedIDAndDuplicateMetricLabels() async throws {
@@ -53,8 +54,10 @@ final class HTTPResearchCatalogIntegrityTests: XCTestCase {
     }
 
     func testEmptyCatalogsStayEmptyWithoutFabricatedResearch() async throws {
-        XCTAssertTrue(try await source("[]").getModels().isEmpty)
-        XCTAssertTrue(try await source("[]").getEvidenceLayers().isEmpty)
+        let models = try await source("[]").getModels()
+        let layers = try await source("[]").getEvidenceLayers()
+        XCTAssertTrue(models.isEmpty)
+        XCTAssertTrue(layers.isEmpty)
     }
 }
 
