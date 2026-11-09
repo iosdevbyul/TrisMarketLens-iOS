@@ -97,6 +97,7 @@ def check(report: dict, expected_sha: str | None = None) -> list[str]:
             for row in submissions:
                 if (not isinstance(row, dict)
                         or set(row) != EXPECTED_FIELDS
+                        or not isinstance(row.get("gate"), str)
                         or row.get("gate") not in MANUAL_GATES
                         or row.get("commit") != sha):
                     problems.append("Manual evidence mismatched or unknown gate")
@@ -105,7 +106,7 @@ def check(report: dict, expected_sha: str | None = None) -> list[str]:
                 eid = row["evidence_id"]
                 if not isinstance(eid, str) or not EVIDENCE_ID.fullmatch(eid):
                     problems.append("Invalid manual evidence ID")
-                if row["outcome"] not in OUTCOMES:
+                if not isinstance(row["outcome"], str) or row["outcome"] not in OUTCOMES:
                     problems.append("Invalid manual QA outcome")
                 try:
                     _utc_timestamp(row["observed_at_utc"])
