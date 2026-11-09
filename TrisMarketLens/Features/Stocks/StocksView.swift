@@ -77,7 +77,11 @@ struct StocksView: View {
         .searchable(text: $query, prompt: "Search ticker, name, or sector")
         .navigationTitle("Stocks")
         .refreshable { await reload() }
-        .task { await reload() }
+        // A split-view selection can cancel the initial SwiftUI .task before
+        // it begins. Start a view-owned request on appearance instead.
+        .onAppear {
+            Task { await reload() }
+        }
     }
 
     @MainActor
