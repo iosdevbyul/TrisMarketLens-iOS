@@ -276,6 +276,7 @@ class ReleaseEvidenceReportTests(unittest.TestCase):
 class CIEvidenceAttachmentTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        ReleaseEvidenceReportTests.setUpClass()
         cls.module = ReleaseEvidenceReportTests.module
         cls.sha = "e" * 40
 
