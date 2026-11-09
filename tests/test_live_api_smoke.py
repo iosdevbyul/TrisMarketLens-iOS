@@ -621,6 +621,28 @@ class GithubCIEvidenceCollectorTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.collector.collect(run_id, sha, fetch=self.fetch)
 
+    def test_rejects_mismatched_or_invalid_fetched_run_id(self):
+        for invalid in (124, True, "123", None):
+            with self.subTest(returned_id=invalid):
+                run = dict(self.run, id=invalid)
+                def fetch(endpoint):
+                    if endpoint.endswith("/jobs?per_page=100"):
+                        return {"total_count": 1, "jobs": self.jobs}
+                    return run
+                with self.assertRaises(ValueError):
+                    self.collector.collect(123, self.sha, fetch=fetch)
+
+    def test_mismatched_run_id_rejected_before_jobs_fetch(self):
+        endpoints = []
+        def fetch(endpoint):
+            endpoints.append(endpoint)
+            return dict(self.run, id=124)
+        with self.assertRaises(ValueError):
+            self.collector.collect(123, self.sha, fetch=fetch)
+        self.assertEqual(endpoints, [
+            "repos/iosdevbyul/TrisMarketLens-iOS/actions/runs/123"
+        ])
+
     def test_uses_fixed_repository_and_get_only_endpoints(self):
         endpoints = []
         def fetch(endpoint):

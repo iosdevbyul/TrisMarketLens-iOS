@@ -76,7 +76,7 @@ python3 scripts/verify_release_report.py \
   --expected-sha FULL_40_CHARACTER_COMMIT_SHA
 ```
 
-The collector executes only authenticated `gh api --method GET` operations against the fixed repository's run and job endpoints. It requires a completed successful `iOS CI` run matching the exact full commit SHA and one complete successful `build-and-test` job with all required step names. The output contains only minimal run and step result metadata, not GitHub credentials or full API responses. It refuses incomplete/paginated job results instead of assuming any missing jobs passed.
+The collector executes only authenticated `gh api --method GET` operations against the fixed repository's run and job endpoints. It also requires the run ID returned by GitHub to equal the exact run ID requested, rejecting mismatched or malformed IDs before retrieving job details. It requires a completed successful `iOS CI` run matching the exact full commit SHA and one complete successful `build-and-test` job with all required step names. The output contains only minimal run and step result metadata, not GitHub credentials or full API responses. It refuses incomplete/paginated job results instead of assuming any missing jobs passed.
 
 This is a convenience for collecting and consistently filtering GitHub evidence. It does **not** verify that the backend data is licensed, validate Apple signing, perform manual QA, or approve release. The tool requires GitHub CLI and an authenticated local operator; CI itself remains network-isolated from release evidence import.
 
