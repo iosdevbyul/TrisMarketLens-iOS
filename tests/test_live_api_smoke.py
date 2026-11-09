@@ -500,6 +500,7 @@ class ReleaseReportIntegrityTests(unittest.TestCase):
     def test_ci_run_and_named_steps_must_match(self):
         url = "https://github.com/iosdevbyul/TrisMarketLens-iOS/actions/runs/123"
         self.report["ci_evidence"] = {"run_id": 123, "head_sha": self.sha, "url": url}
+        self.report["scope"] = "offline_source_audit_and_ci_observations"
         for gate, name in self.builder.CI_STEPS.items():
             self.report["automated_gates"][gate] = {
                 "status": "passed",
