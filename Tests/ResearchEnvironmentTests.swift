@@ -52,6 +52,43 @@ final class ResearchEnvironmentTests: XCTestCase {
         XCTAssertNotNil(environment.client)
     }
 
+    func testReleaseRejectsPlaintextResearchServers() throws {
+        let values = [
+            "TRIS_DATA_MODE": "http",
+            "TRIS_API_BASE_URL": "http://example.test:8000"
+        ]
+        #if DEBUG
+        XCTAssertNotNil(try ResearchEnvironment(values: values).client)
+        #else
+        XCTAssertThrowsError(try ResearchEnvironment(values: values)) { error in
+            XCTAssertEqual(error as? ResearchEnvironmentError, .insecureReleaseURL)
+        }
+        #endif
+    }
+
+    func testLoopbackPlaintextOnlyPermittedInDebug() throws {
+        let values = [
+            "TRIS_DATA_MODE": "http",
+            "TRIS_API_BASE_URL": "http://127.0.0.1:8000"
+        ]
+        #if DEBUG
+        XCTAssertEqual(try ResearchEnvironment(values: values).mode, .http)
+        #else
+        XCTAssertThrowsError(try ResearchEnvironment(values: values)) { error in
+            XCTAssertEqual(error as? ResearchEnvironmentError, .insecureReleaseURL)
+        }
+        #endif
+    }
+
+    func testHTTPSRemainsAvailableInReleaseAndDebug() throws {
+        let environment = try ResearchEnvironment(values: [
+            "TRIS_DATA_MODE": "http",
+            "TRIS_API_BASE_URL": "https://research.example.test"
+        ])
+        XCTAssertEqual(environment.mode, .http)
+        XCTAssertNotNil(environment.client)
+    }
+
     func testUnsupportedModeRejected() {
         XCTAssertThrowsError(try ResearchEnvironment(values: ["TRIS_DATA_MODE": "production"]))
     }
