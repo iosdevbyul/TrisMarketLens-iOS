@@ -41,21 +41,29 @@ struct HTTPStockSource: StockSource {
 struct HTTPResearchCatalogSource: ResearchCatalogSource {
     let client: ResearchAPIClient
     func getModels() async throws -> [ModelSummary] {
-        try await client.fetch([ModelSummary].self, path: ["api", "v1", "models"])
+        let models = try await client.fetch([ModelSummary].self, path: ["api", "v1", "models"])
+        guard ResearchCatalogPayloadValidation.models(models) else { throw ResearchAPIError.invalidPayload }
+        return models
     }
     func getModel(id: String) async throws -> ModelDetail? {
         do {
-            return try await client.fetch(ModelDetail.self, path: ["api", "v1", "models", id])
+            let model = try await client.fetch(ModelDetail.self, path: ["api", "v1", "models", id])
+            guard ResearchCatalogPayloadValidation.model(model, requestedID: id) else { throw ResearchAPIError.invalidPayload }
+            return model
         } catch ResearchAPIError.httpStatus(404) {
             return nil
         }
     }
     func getEvidenceLayers() async throws -> [EvidenceLayerSummary] {
-        try await client.fetch([EvidenceLayerSummary].self, path: ["api", "v1", "evidence"])
+        let layers = try await client.fetch([EvidenceLayerSummary].self, path: ["api", "v1", "evidence"])
+        guard ResearchCatalogPayloadValidation.layers(layers) else { throw ResearchAPIError.invalidPayload }
+        return layers
     }
     func getEvidenceLayer(id: String) async throws -> EvidenceDetail? {
         do {
-            return try await client.fetch(EvidenceDetail.self, path: ["api", "v1", "evidence", id])
+            let layer = try await client.fetch(EvidenceDetail.self, path: ["api", "v1", "evidence", id])
+            guard ResearchCatalogPayloadValidation.layer(layer, requestedID: id) else { throw ResearchAPIError.invalidPayload }
+            return layer
         } catch ResearchAPIError.httpStatus(404) {
             return nil
         }
