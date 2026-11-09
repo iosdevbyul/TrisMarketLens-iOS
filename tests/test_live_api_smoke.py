@@ -185,6 +185,41 @@ class LiveAPISmokeTests(unittest.TestCase):
 
 
 
+class LiveAnalysisContractTests(unittest.TestCase):
+    def setUp(self):
+        self.record = {
+            "id": "analysis-1", "ticker": "005930",
+            "analyzedAt": "2026-11-01T00:00:00Z", "dataThrough": "2026-10-31",
+            "modelId": "model-1", "modelVersion": "v1",
+            "direction": "neutral", "validation": "pending",
+            "score": None, "explanation": None,
+        }
+
+    def test_valid_analysis_record_and_empty_publication(self):
+        self.assertIsNone(checker.validate_analysis({"ticker": "005930", "records": []}, "005930"))
+        self.assertIsNone(checker.validate_analysis({"ticker": "005930", "records": [self.record]}, "005930"))
+
+    def test_rejects_cross_ticker_or_duplicate_records(self):
+        bad = dict(self.record, ticker="000660")
+        self.assertIsNotNone(checker.validate_analysis({"ticker": "005930", "records": [bad]}, "005930"))
+        self.assertIsNotNone(checker.validate_analysis({"ticker": "000660", "records": []}, "005930"))
+        self.assertIsNotNone(checker.validate_analysis({"ticker": "005930", "records": [self.record, self.record]}, "005930"))
+
+    def test_rejects_malformed_and_nonfinite_record_fields(self):
+        for changed in (
+            {"id": ""}, {"analyzedAt": None}, {"modelId": 123},
+            {"score": float("nan")}, {"score": True},
+            {"score": "9"}, {"explanation": []},
+        ):
+            with self.subTest(changed=changed):
+                record = dict(self.record, **changed)
+                self.assertIsNotNone(checker.validate_analysis({"ticker": "005930", "records": [record]}, "005930"))
+        missing = dict(self.record)
+        del missing["score"]
+        self.assertIsNotNone(checker.validate_analysis({"ticker": "005930", "records": [missing]}, "005930"))
+
+
+
 AUDIT_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "audit_release_config.py"
 audit_spec = importlib.util.spec_from_file_location("audit_release_config", AUDIT_SCRIPT)
 release_audit = importlib.util.module_from_spec(audit_spec)

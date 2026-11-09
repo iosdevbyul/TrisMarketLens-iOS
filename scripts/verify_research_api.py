@@ -81,6 +81,32 @@ def validate_ohlcv(payload: dict, ticker: str):
             return f"Bar {index} has invalid volume"
     return None
 
+def validate_analysis(payload: dict, ticker: str):
+    """Check analysis identity and record structure, not model performance."""
+    if payload.get("ticker") != ticker or not isinstance(payload.get("records"), list):
+        return "Analysis ticker mismatch or records is not a list"
+    seen = set()
+    required = ("id", "ticker", "analyzedAt", "dataThrough", "modelId", "modelVersion", "direction", "validation")
+    for index, record in enumerate(payload["records"]):
+        if not isinstance(record, dict):
+            return f"Analysis record {index} is not an object"
+        if any(not isinstance(record.get(key), str) or not record[key].strip() for key in required):
+            return f"Analysis record {index} has invalid required fields"
+        if record["ticker"] != ticker:
+            return f"Analysis record {index} ticker mismatch"
+        if record["id"] in seen:
+            return f"Analysis record {index} repeats ID"
+        seen.add(record["id"])
+        if "score" not in record:
+            return f"Analysis record {index} missing score"
+        score = record["score"]
+        if score is not None and (type(score) not in (int, float) or not math.isfinite(score)):
+            return f"Analysis record {index} has invalid score"
+        if record.get("explanation") is not None and not isinstance(record["explanation"], str):
+            return f"Analysis record {index} has invalid explanation"
+    return None
+
+
 def verify(base: str, timeout: float, ticker: str | None) -> int:
     parsed = urllib.parse.urlsplit(base)
     if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
@@ -116,6 +142,8 @@ def verify(base: str, timeout: float, ticker: str | None) -> int:
                 if missing:
                     state, result = "INCOMPATIBLE", "Missing fields: " + ", ".join(sorted(missing))
                 elif ticker and canonical == "/api/v1/stocks/{ticker}/ohlcv" and (issue := validate_ohlcv(result, ticker)):
+                    state, result = "INCOMPATIBLE", issue
+                elif ticker and canonical == "/api/v1/stocks/{ticker}/analysis" and (issue := validate_analysis(result, ticker)):
                     state, result = "INCOMPATIBLE", issue
                 else:
                     result = "JSON contract checked; source integrity still requires independent verification"
