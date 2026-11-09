@@ -21,7 +21,7 @@ python3 scripts/verify_research_api.py --base-url http://127.0.0.1:8000 --ticker
 The script uses only the Python standard library and makes GET requests.
 It checks the actual health payload (`ok`, `DonghakStockVision`,
 `read_only`) before attempting status, stocks, models, evidence,
-baseline and screener. Optional stock checks cover detail, OHLCV and analysis.
+baseline and screener. Optional stock checks cover detail, OHLCV and analysis. OHLCV bar dates must be real Gregorian calendar dates in exact `YYYY-MM-DD` format (including leap-year checks), without making unsupported assumptions about backend bar order. A structurally valid date does not establish exchange-session authenticity or original KRX provenance.
 
 ## Interpreting results
 
