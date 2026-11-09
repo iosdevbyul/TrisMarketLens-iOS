@@ -39,6 +39,20 @@ def revision(root: Path) -> str:
     ).strip()
 
 
+def ensure_clean_checkout(root: Path) -> None:
+    """Do not attribute uncommitted source or newly created files to HEAD."""
+    try:
+        output = subprocess.check_output(
+            ["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"],
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError("Cannot verify clean release candidate checkout") from error
+    if output.strip():
+        # Do not print paths: untracked filenames may themselves be sensitive.
+        raise ValueError("Release evidence requires a clean Git checkout (commit or remove local changes)")
+
+
 def build_report(commit: str, config_issues: list[str], now: str) -> dict:
     if not re.fullmatch(r"[a-fA-F0-9]{40}", commit):
         raise ValueError("A full Git commit SHA is required")
@@ -145,6 +159,10 @@ def main() -> int:
     parser.add_argument("--ci-evidence", type=Path, help="Offline GitHub Actions run+jobs JSON captured for this exact commit")
     parser.add_argument("--manual-evidence", type=Path, help="Offline SHA-bound manual QA evidence IDs submitted for review")
     args = parser.parse_args()
+    try:
+        ensure_clean_checkout(ROOT)
+    except ValueError as error:
+        parser.error(str(error))
     issues = audit(
         (ROOT / "project.yml").read_text(encoding="utf-8"),
         tracked_files(ROOT),
