@@ -54,17 +54,23 @@ enum ResearchDiagnosticSummary {
         }
     }
 
+    private static let recognizedRoutes: Set<String> = [
+        "/api/v1/project/status",
+        "/api/v1/stocks",
+        "/api/v1/models",
+        "/api/v1/evidence",
+        "/api/v1/backtests/baseline",
+        "/api/v1/analysis/screener",
+        "/api/v1/operations/runs",
+        "/api/v1/operations/freshness",
+        "/api/v1/operations/alerts",
+        "/api/v1/operational/summary",
+        "/api/v1/operational/stocks",
+        "/api/v1/research/historical-portfolios",
+        "/api/v1/stocks/{ticker}/evaluations",
+    ]
+
     private static func safeRoute(_ path: String) -> String {
-        guard path.hasPrefix("/api/v1/"),
-              path.utf8.count <= 160,
-              path.unicodeScalars.allSatisfy({ scalar in
-                  (48...57).contains(scalar.value) ||
-                  (65...90).contains(scalar.value) ||
-                  (97...122).contains(scalar.value) ||
-                  "/-_{}".unicodeScalars.contains(scalar)
-              }) else {
-            return "[unrecognized route]"
-        }
-        return path
+        recognizedRoutes.contains(path) ? path : "[unrecognized route]"
     }
 }
