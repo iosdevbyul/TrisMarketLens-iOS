@@ -47,7 +47,7 @@ final class ResearchDiagnosticSummaryTests: XCTestCase {
             endpoint("/api/v1/evidence", .notConfigured, detail: secret),
         ]
         let left = ResearchDiagnosticSummary.render(connection: reachable, results: routes)
-        let right = ResearchDiagnosticSummary.render(connection: reachable, results: routes.reversed())
+        let right = ResearchDiagnosticSummary.render(connection: reachable, results: Array(routes.reversed()))
         XCTAssertEqual(left, right)
         XCTAssertFalse(left.contains("private.example.test"))
         XCTAssertFalse(left.contains("confidential-token"))
