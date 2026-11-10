@@ -192,6 +192,15 @@ struct BacktestingOperationsView: View {
                             }
                         }
                     }
+                    if !checkingConnection && (connection.state != .notConfigured || !endpointResults.isEmpty) {
+                        ShareLink(item: ResearchDiagnosticSummary.render(
+                            connection: connection,
+                            results: endpointResults
+                        )) {
+                            Label("Share API diagnostic summary", systemImage: "square.and.arrow.up")
+                        }
+                        .accessibilityHint("Shares route statuses without server URLs, credentials, or research payloads")
+                    }
                     Text("A successful preflight confirms only decodable read-only endpoints; no raw KRX custody, approved research publication, physical device QA or signing is certified.")
                         .font(.footnote)
                         .foregroundStyle(WakColor.textSecondary)
